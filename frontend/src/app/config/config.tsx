@@ -6,11 +6,11 @@ import { getOrMapViemChain } from '@dynamic-labs/ethereum-core';
 
 //token = PAWRixwhWhWAYRP0zjDKCu69
 const projectId = "49833b3043fb1dc08bcdccf7ab548c31";
-const rpcURL = `https://data-seed-prebsc-2-s2.bnbchain.org:8545`;
-//const rpcURL = `https://evmrpc.testnet.epix.zone/`;
+//const rpcURL = `https://data-seed-prebsc-2-s2.bnbchain.org:8545`;
+const rpcURL = `https://evmrpc.testnet.epix.zone/`;
 
 const MODE:boolean = false; // TODO
-let chain : any = MODE ? bsc : bscTestnet // TODO
+let chain : any = MODE ? bsc : epixTestnet // TODO
 chain = {
   id: chain.id,
   name: chain.name,
@@ -28,7 +28,7 @@ chain = {
 }
 
 //logic contract 0xC4845d8d63Be6b9fe1AEdF060b8E5aC58fcec2A2     "0xC76EbF4c4461De3f88DE62286Eb4400C9B89E769","0x6B84106e33713730B90A7B375572A36985574907" : bsc  "0xa76FA4197E7245E8E521006672d6B781BE1AbA08" : epix
-const curve = MODE ? "0x9A132b310eED1D8A15f92491A3026d0cDe773D91" : "0xC76EbF4c4461De3f88DE62286Eb4400C9B89E769" // TODO //"0xa76FA4197E7245E8E521006672d6B781BE1AbA08"
+const curve = MODE ? "0x9A132b310eED1D8A15f92491A3026d0cDe773D91" : "0x79D2660Ce8e962ddA98a3e3ab377eC7EC37AD0C6" // TODO //"0xa76FA4197E7245E8E521006672d6B781BE1AbA08"
 
 // const config = getDefaultConfig?.({
 //   appName: 'chain', // TODO
@@ -104,12 +104,12 @@ const Config = {
   CURVE: curve,
   CURVE_VX: "6266666666666666667", // TODO //18.8BNB
   CURVE_VY: "1057466666666666666666666667", // TODO
-  CURVE_HARDCAP: 5,
-  CURVE_KINGCAP: 2,
+  CURVE_HARDCAP: 6666666,
+  CURVE_KINGCAP: 2666666,
   CURVE_SWAP_FEE: 0.01,
   CURVE_CREATE_FEE: 0.002,
   CURVE_DEC: 18,
-  MULTICALL: '0xcA11bde05977b3631167028862bE2a173976CA11',//,'0xA14F6e211C01354d9a18290592d344d28cE0A5a2', //
+  MULTICALL: '0xA14F6e211C01354d9a18290592d344d28cE0A5a2', //'0xcA11bde05977b3631167028862bE2a173976CA11',//,
   SCAN_LINK: chain.blockExplorers.default.url,
 };
 

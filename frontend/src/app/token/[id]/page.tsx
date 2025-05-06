@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import TradingView from "@/app/sections/TradingView";
+import {ethers} from "ethers"
 
 import { useAccount } from "wagmi";
 import {
@@ -57,7 +58,12 @@ export default function TokenPage() {
     // eslint-disable-next-line
   }, [refetch]);
 
-  const getCurveInfo = useCallback(async (_tokenAddr : any) => {
+  const provider = new ethers.BrowserProvider(window.ethereum);
+
+  const getCurveInfo = useCallback(async (_tokenAddr: any) => {
+    const signer = await provider.getSigner();
+    const curveContract = new ethers.Contract(Config.CURVE, curveABI, signer);
+
     if (!_tokenAddr || !isValidAddress(_tokenAddr)) {
       return {
         supply: "0",
@@ -86,68 +92,47 @@ export default function TokenPage() {
       };
     }
     try {
-      const addr_abi = {
-        address: Config.CURVE,
-        abi: curveABI,
-      }
-      const _curveRaw = await multicall(Config.config, {
-        contracts: [
-          {
-            ...addr_abi,
-            functionName: "curveInfo",
-            args: [_tokenAddr],
-          } as any,
-          {
-            ...addr_abi,
-            functionName: "priceInUSD",
-            args: [_tokenAddr],
-          } as any,
-          {
-            ...addr_abi,
-            functionName: "hardcapPriceInUSD",
-            args: [_tokenAddr],
-          } as any,
-          {
-            ...addr_abi,
-            functionName: "kingcapPriceInUSD",
-            args: [_tokenAddr],
-          } as any,
-          {
-            ...addr_abi,
-            functionName: "priceInUSDFromFunds",
-            args: [0, _tokenAddr],
-          } as any,
-          {
-            ...addr_abi,
-            functionName: "getLatestETHPrice",
-            args: [],
-          } as any
-        ],
-      });
+      const curveInfo = await curveContract.curveInfo(_tokenAddr);
 
-      const supply = _curveRaw[0].status === "success" ? Number(formatUnits((_curveRaw as any)[0].result[0], 18)) : "0";
-      const funds = (_curveRaw as any)[0].status === "success" ? Number(formatUnits((_curveRaw as any)[0].result[1], 18)) : 0;
-      const status = (_curveRaw as any)[0].status === "success" ? Number((_curveRaw as any)[0].result[2]) : 0;
-      const king = (_curveRaw as any)[0].status === "success" ? (_curveRaw as any)[0].result[3] : "0";
-      const creator = (_curveRaw as any)[0].status === "success" ? (_curveRaw as any)[0].result[4] : "";
-      const id = (_curveRaw as any)[0].status === "success" ? Number((_curveRaw as any)[0].result[5]) : 0;
+      const supply = Number(ethers.formatUnits(curveInfo[0], 18));
+      const funds = Number(ethers.formatUnits(curveInfo[1], 18));
+      const status = Number(curveInfo[2]);
+      const king = curveInfo[3];
+      const creator = curveInfo[4];
+      const id = Number(curveInfo[5]);
       const token = _tokenAddr;
-      const totalSupply = (_curveRaw as any)[0].status === "success" ? Number(formatUnits((_curveRaw as any)[0].result[7], 18)) : "0";
-      const createdAt = (_curveRaw as any)[0].status === "success" ? Number((_curveRaw as any)[0].result[8]) : 0;
-      const name = (_curveRaw as any)[0].status === "success" ? (_curveRaw as any)[0].result[9] : "";
-      const symbol = (_curveRaw as any)[0].status === "success" ? (_curveRaw as any)[0].result[10] : "";
-      const logo = (_curveRaw as any)[0].status === "success" ? (_curveRaw as any)[0].result[11] : "";
-      const description = (_curveRaw as any)[0].status === "success" ? (_curveRaw as any)[0].result[12] : "";
-      const twitter = (_curveRaw as any)[0].status === "success" ? (_curveRaw as any)[0].result[13] : "";
-      const telegram = (_curveRaw as any)[0].status === "success" ? (_curveRaw as any)[0].result[14] : "";
-      const website = (_curveRaw as any)[0].status === "success" ? (_curveRaw as any)[0].result[15] : "";
-      const actionAt = (_curveRaw as any)[0].status === "success" ? Number((_curveRaw as any)[0].result[16]) : 0;
-      const priceInUSD = (_curveRaw as any)[1].status === "success" ? Number(formatUnits((_curveRaw as any)[1].result, 12)) : 0;
-      const mc = (_curveRaw as any)[1].status === "success" ? Number(formatUnits((_curveRaw as any)[1].result, 3)) : 0;
-      const hardcapMc = (_curveRaw as any)[2].status === "success" ? Number(formatUnits((_curveRaw as any)[2].result, 3)) : 0;
-      const kingcapMc = (_curveRaw as any)[3].status === "success" ? Number(formatUnits((_curveRaw as any)[3].result, 3)) : 0;
-      const priceInUSDInital = (_curveRaw[4] as any).status === "success" ? Number(formatUnits((_curveRaw[4] as any).result, 12)) : 0;
-      const epixPrice = (_curveRaw[5] as any).status === "success" ? Number(formatUnits((_curveRaw[5] as any).result, 8)) : 0;
+      const totalSupply = Number(ethers.formatUnits(curveInfo[7], 18));
+      const createdAt = Number(curveInfo[8]);
+      const name = curveInfo[9];
+      const symbol = curveInfo[10];
+      const logo = curveInfo[11];
+      const description = curveInfo[12];
+      const twitter = curveInfo[13];
+      const telegram = curveInfo[14];
+      const website = curveInfo[15];
+      const actionAt = Number(curveInfo[16]);
+
+      // 2. Call all the price functions in parallel
+      const [
+        priceInUSDRaw,
+        hardcapPriceInUSDRaw,
+        kingcapPriceInUSDRaw,
+        priceInUSDFromFundsRaw,
+        epixPriceRaw
+      ] = await Promise.all([
+        curveContract.priceInUSD(_tokenAddr),
+        curveContract.hardcapPriceInUSD(_tokenAddr),
+        curveContract.kingcapPriceInUSD(_tokenAddr),
+        curveContract.priceInUSDFromFunds(0, _tokenAddr),
+        curveContract.getLatestETHPrice()
+      ]);
+
+      const priceInUSD = Number(ethers.formatUnits(priceInUSDRaw, 12));
+      const mc = Number(ethers.formatUnits(priceInUSDRaw, 3));
+      const hardcapMc = Number(ethers.formatUnits(hardcapPriceInUSDRaw, 3));
+      const kingcapMc = Number(ethers.formatUnits(kingcapPriceInUSDRaw, 3));
+      const priceInUSDInital = Number(ethers.formatUnits(priceInUSDFromFundsRaw, 12));
+      const epixPrice = Number(ethers.formatUnits(epixPriceRaw, 8));
       // console.log('_curveInfo: ', supply, funds, status, king, creator, id, token, totalSupply, createdAt, name, symbol, logo, priceInUSD, mc)
       return {
         supply,
@@ -205,53 +190,41 @@ export default function TokenPage() {
 
   useEffect(() => {
     setLoaded(false);
-    const fetchData = async (_tokenAddr : any) => {
+    const fetchData = async (_tokenAddr: any) => {
       const _curveInfo = await getCurveInfo(_tokenAddr);
       setCurveInfo(_curveInfo);
     };
-    const getTokenInfo = async (_tokenAddr : any) => {
-      _tokenAddr =
-        _tokenAddr.length > 42 ? _tokenAddr.slice(0, 42) : _tokenAddr;
-      if (
-        !_tokenAddr ||
-        !isValidAddress(_tokenAddr) ||
-        !account.address ||
-        !isValidAddress(account.address)
-      )
-        return;
-
-      let contracts: any[] = [];
+    const getTokenInfo = async (_tokenAddr: any) => {
       try {
-        contracts.push({
-          address: _tokenAddr,
-          abi: erc20ABI,
-          functionName: "balanceOf",
-          args: [account.address],
-        });
-        contracts.push({
-          address: Config.MULTICALL,
-          abi: multicallABI,
-          functionName: "getEthBalance",
-          args: [account.address],
-        });
-
-        const _data = await multicall(Config.config, { contracts });
-        const balance =
-          account.address && _data[0].status === "success"
-            ? (parseFloat(
-              formatUnits((_data as any)[0].result, Config.CURVE_DEC)
-            ) > 0.005 ? parseFloat(
-              formatUnits((_data as any)[0].result, Config.CURVE_DEC)
-            ) - 0.005 : 0).toFixed(2)
-            : "0.00";
-        const epixBal =
-          account.address && _data[1].status === "success"
-            ? parseFloat(formatUnits((_data as any)[1].result, Config.WETH_DEC)).toFixed(4)
-            : "0.0000";
-
+        // Ensure address is valid and trimmed
+        _tokenAddr = _tokenAddr.length > 42 ? _tokenAddr.slice(0, 42) : _tokenAddr;
+        const userAddress = account.address;
+    
+        if (
+          !_tokenAddr ||
+          !isValidAddress(_tokenAddr) ||
+          !userAddress ||
+          !isValidAddress(userAddress)
+        ) return;
+    
+        const signer = await provider.getSigner();
+        // ERC20 contract instance
+        const tokenContract = new ethers.Contract(_tokenAddr, erc20ABI, signer);
+    
+        // Get token balance (ERC20)
+        const rawTokenBalance = await tokenContract.balanceOf(userAddress);
+        const tokenBalance = parseFloat(formatUnits(rawTokenBalance, Config.CURVE_DEC));
+        const balance = tokenBalance > 0.005 ? (tokenBalance - 0.005).toFixed(2) : "0.00";
+    
+        // Get native coin balance (Epix/ETH/BNB)
+        const rawNativeBalance = await provider.getBalance(userAddress);
+        const epixBal = parseFloat(formatUnits(rawNativeBalance, Config.WETH_DEC)).toFixed(4);
+    
+        // Set the state or return the values
         setTokenInfo({ balance, epixBal });
-      } catch (err) {
-        console.log(err);
+    
+      } catch (error) {
+        console.error("getTokenInfo error:", error);
       }
     };
 

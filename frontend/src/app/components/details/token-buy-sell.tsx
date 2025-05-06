@@ -280,6 +280,11 @@ function TokenBuySell({
     try {
       const _deadline = Math.floor(Date.now() / 1000) + Number(deadline) * 60;
       let data = {};
+      const provider = new ethers.BrowserProvider(window.ethereum);// or injected provider
+      const curveContract = new ethers.Contract(Config.CURVE, curveABI, provider);
+      const erc20 = new ethers.Contract(tokenAddr, erc20ABI, provider);
+
+      console.log("====================================================")
       if (!swapToggle) {
 
         if (Number(epixAmount) <= 0) {
@@ -342,10 +347,6 @@ function TokenBuySell({
         // }
 
         // Setup provider and signer (e.g., from wallet connection)
-        const provider = new ethers.JsonRpcProvider(Config.RPC_URL); // or injected provider
-        // const signer = new ethers.Wallet(account.privateKey, provider); // or use connected signer
-
-        const curveContract = new ethers.Contract(Config.CURVE, curveABI, provider);
 
         const tokenMinParsed = ethers.parseUnits(tokenMin.toFixed(8), Config.CURVE_DEC);
         const valueParsed = ethers.parseUnits(requiredEpixBal.toFixed(8), Config.WETH_DEC);
@@ -405,114 +406,69 @@ function TokenBuySell({
           );
           return;
         }
-        const _data = await multicall(Config.config, {
-          contracts: [
-            {
-              address: tokenAddr,
-              abi: erc20ABI as any,
-              functionName: "allowance",
-              args: [
-                account.address,
-                Config.CURVE
-              ],
-            },
-          ],
-        });
-        const allowance =
-          _data[0].status === "success"
-            ? parseFloat(formatUnits((_data[0] as any).result, Config.CURVE_DEC))
-            : 0;
+        const rawAllowance = await erc20.allowance(account.address, Config.CURVE);
+        const allowance = parseFloat(ethers.formatUnits(rawAllowance, Config.CURVE_DEC));
 
-        let encodedData;
-        let txHash;
-        let txPendingData;
-        let txData;
+        let tx;
+        let receipt;
+
+        // 2. Approve token if necessary
         if (allowance < Number(tokenAmount)) {
-          data = {
-            address: tokenAddr,
-            abi: erc20ABI,
-            functionName: "approve",
-            args: [
-              Config.CURVE,
-              Config.MAX_UINT256
-            ],
-            value: 0,
-          };
-          encodedData = encodeFunctionData(data as any);
-          await estimateGas(config, {
-            ...account,
-            data: encodedData,
-            to: (data as any).address,
-            value: (data as any).value,
-          });
-          txHash = await writeContract(config, {
-            ...account,
-            ...data,
-          } as any);
-
-          txPendingData = waitForTransactionReceipt(config, {
-            hash: txHash,
-          });
+          tx = await erc20.approve(Config.CURVE, Config.MAX_UINT256);
           toast.promise(
-            txPendingData,
+            tx.wait(),
             {
-              pending: "Waiting for pending... 👌",
+              pending: "Waiting for approval... 👌",
+              success: "Successfully enabled token! 👍",
+              error: "Approval failed ❌",
             },
             toastConfig as any
           );
 
-          txData = await txPendingData;
-          if (txData && txData.status === "success") {
-            toast.success(`Successfully enabled token! 👍`, toastConfig as any);
-          } else {
+          receipt = await tx.wait();
+          if (receipt.status !== 1) {
             setPending(false);
-            toast.error("Error! Transaction is failed.", toastConfig as any);
-            return;
+            return toast.error("Error! Approval transaction failed.", toastConfig as any);
           }
         }
 
+        // 3. Call `sell` on curve
         const epixMin = (Number(epixAmount) * (100 - parseFloat(slippage))) / 100;
-        data = {
-          address: Config.CURVE,
-          abi: curveABI,
-          functionName: "sell",
-          args: [
-            tokenAddr,
-            parseUnits(Number(tokenAmount).toFixed(8), Config.CURVE_DEC),
-            parseUnits(epixMin.toFixed(8), Config.WETH_DEC),
-            _deadline,
-          ],
-        };
-        encodedData = encodeFunctionData(data as any);
-        await estimateGas(config, {
-          ...account,
-          data: encodedData,
-          to: (data as any).address,
-        });
-        txHash = await writeContract(config, {
-          ...account,
-          ...data,
-        } as any);
 
-        txPendingData = waitForTransactionReceipt(config, {
-          hash: txHash,
+        const sellArgs = [
+          tokenAddr,
+          ethers.parseUnits(Number(tokenAmount).toFixed(8), Config.CURVE_DEC),
+          ethers.parseUnits(epixMin.toFixed(8), Config.WETH_DEC),
+          _deadline,
+        ];
+
+        console.log("sell transaction=============================")
+        // Optional: estimate gas
+        const gasEstimate = await curveContract.estimateGas.sell(...sellArgs);
+
+        // Send tx
+        tx = await curveContract.sell(...sellArgs, {
+          gasLimit: gasEstimate,
         });
+
         toast.promise(
-          txPendingData,
+          tx.wait(),
           {
-            pending: "Waiting for pending... 👌",
+            pending: "Waiting for swap... 👌",
+            success: "Successfully swapped token! 👍",
+            error: "Swap failed ❌",
           },
           toastConfig as any
         );
 
-        txData = await txPendingData;
-        if (txData && txData.status === "success") {
+        receipt = await tx.wait();
+
+        if (receipt.status === 1) {
           setEpixAmount("0");
           setTokenAmount("0");
           setRefresh(!refresh);
-          toast.success(`Successfully swapped token! 👍`, toastConfig as any);
         } else {
-          toast.error("Error! Transaction is failed.", toastConfig as any);
+          toast.error("Error! Swap transaction failed.", toastConfig as any);
         }
       }
     } catch (err) {

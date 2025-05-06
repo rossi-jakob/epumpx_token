@@ -143,8 +143,8 @@ contract EvmFunCurve is
         factory = address(0xB7926C0430Afb07AA7DEfDE6DA862aE0Bde767bc);
         weth = address(0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd);
         priceFeed = IPriceFeed(0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526);
-        hardcap = 5 ether;
-        kingcap = 2 ether;
+        hardcap = 6666666 ether;
+        kingcap = 2666666 ether;
         CREATE_FEE = 0.002 ether;
         CURVE_FEE = 0.2 ether;
     }
@@ -438,7 +438,7 @@ contract EvmFunCurve is
     }
 
     function getLatestETHPrice() public view returns (uint256) {
-        return uint256(priceFeed.latestAnswer());
+        return 300000;//uint256(priceFeed.latestAnswer());
     }
 
     // PriceInETH as PRICE_DENOM

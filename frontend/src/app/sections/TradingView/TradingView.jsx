@@ -1,4 +1,4 @@
-'use client'
+"use client";
 import React, { useState, useEffect, useRef, memo } from "react";
 import { toast } from "react-toastify";
 import { BsGlobe2 } from "react-icons/bs";
@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "react-i18next";
+import { ethers } from "ethers";
 
 import {
   multicall,
@@ -48,16 +49,12 @@ function TradingView({
   // tradeInfo,
   // otherInfo
 }) {
+  const account = useAccount();
+  const config = useConfig();
+  const router = useRouter();
+  const { t } = useTranslation();
 
-  const account = useAccount()
-  const config = useConfig()
-  const router = useRouter()
-  const {t} = useTranslation()
-
-  const {
-    tradeData,
-    holderData,
-  } = useCurveStatus(refresh, tokenAddr);
+  const { tradeData, holderData } = useCurveStatus(refresh, tokenAddr);
 
   const [swapToggle, setSwapToggle] = useState(false);
   const [toggleComment, setCommentToggle] = useState(false);
@@ -71,10 +68,13 @@ function TradingView({
   const [pending, setPending] = useState(false);
   const [btnMsg, setBtnMsg] = useState("Swap");
   const [errMsg, setErrMsg] = useState("");
+  const [contract, setContract] = useState();
 
   const [mevProtect, setMEVProtect] = useState(false);
 
   const container = useRef();
+
+  const provider = new ethers.BrowserProvider(window.ethereum); // or your custom provider
 
   useEffect(() => {
     if (pending) {
@@ -82,37 +82,42 @@ function TradingView({
       setErrMsg("Pending... Please wait a second.");
       return;
     }
-  }, [pending]);
+  }, [pending, contract]);
 
   const getAmountOutEPIX = async (inputTokenAmount) => {
     if (inputTokenAmount === 0 || inputTokenAmount > tokenInfo.balance) return;
+
     setBtnMsg("Calculating...");
     setErrMsg("Calculating... Please wait a second");
+
     let _epixAmount = 0;
+
     try {
       if (swapToggle) {
         // sell
-        const contracts = [
-          {
-            address: Config.CURVE,
-            abi: curveABI,
-            functionName: "getAmountOutETH",
-            args: [
-              parseUnits(inputTokenAmount.toString(), Config.CURVE_DEC),
-              tokenAddr,
-            ],
-          },
-        ];
-        const _data = await multicall(Config.config, { contracts });
-        _epixAmount =
-          _data[0].status === "success"
-            ? parseFloat(formatUnits(_data[0].result[0], Config.WETH_DEC))
-            : 0;
-        setEpixAmount(_epixAmount > 0.000005 ? (_epixAmount - 0.000005).toFixed(5) : '0');
+        const parsedInput = ethers.parseUnits(
+          inputTokenAmount.toString(),
+          Config.CURVE_DEC
+        );
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(Config.CURVE, curveABI, signer);
+
+        const result = await contract.getAmountOutETH(parsedInput, tokenAddr);
+        const epixOut = Array.isArray(result) ? result[0] : result;
+
+        const formatted = parseFloat(
+          ethers.formatUnits(epixOut, Config.WETH_DEC)
+        );
+
+        _epixAmount = formatted;
+        setEpixAmount(
+          _epixAmount > 0.000005 ? (_epixAmount - 0.000005).toFixed(5) : "0"
+        );
       }
     } catch (err) {
-      console.log(err);
+      console.error("Error getting amount out:", err);
     }
+
     if (inputTokenAmount > tokenInfo.balance) {
       setBtnMsg("Insufficient funds");
       setErrMsg("Insufficient funds");
@@ -148,35 +153,47 @@ function TradingView({
 
   const getTokenAmountMin = async (inputEpixAmount) => {
     if (inputEpixAmount === 0 || inputEpixAmount > tokenInfo.epixBal) return;
+
     setBtnMsg("Calculating...");
     setErrMsg("Calculating... Please wait a second");
+
     let _tokenAmount = 0;
     let _epixAmount = 0;
-    if (!swapToggle) {
-      // buy
-      _epixAmount = inputEpixAmount;
-      const _curFunds = curveInfo?.funds >= 0 ? curveInfo?.funds : 0;
-      if (_epixAmount + _curFunds > Config.CURVE_HARDCAP) {
-        _epixAmount = Config.CURVE_HARDCAP - _curFunds;
+
+    try {
+      if (!swapToggle) {
+        // buy
+        _epixAmount = inputEpixAmount;
+        const _curFunds = curveInfo?.funds >= 0 ? curveInfo.funds : 0;
+
+        // apply hardcap constraint
+        if (_epixAmount + _curFunds > Config.CURVE_HARDCAP) {
+          _epixAmount = Config.CURVE_HARDCAP - _curFunds;
+        }
+
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(Config.CURVE, curveABI, signer);
+
+        const parsedAmount = ethers.parseUnits(_epixAmount.toString(), 18); // assuming EPIX is 18 decimals
+        const result = await contract.getAmountOutToken(
+          parsedAmount,
+          tokenAddr
+        );
+
+        const formatted = parseFloat(
+          ethers.formatUnits(result, Config.CURVE_DEC)
+        );
+        _tokenAmount = formatted;
+
+        setTokenAmount(
+          _tokenAmount > 0.005 ? (_tokenAmount - 0.005).toFixed(2) : "0"
+        );
       }
-      const contracts = [
-        {
-          address: Config.CURVE,
-          abi: curveABI,
-          functionName: "getAmountOutToken",
-          args: [
-            parseUnits(_epixAmount.toString(), 18),
-            tokenAddr
-          ],
-        },
-      ];
-      const _data = await multicall(Config.config, { contracts });
-      _tokenAmount =
-        _data[0].status === "success"
-          ? parseFloat(formatUnits(_data[0].result, Config.CURVE_DEC))
-          : 0;
-      setTokenAmount(_tokenAmount > 0.005 ? (_tokenAmount - 0.005).toFixed(2) : '0');
+    } catch (err) {
+      console.error("Error calculating token amount:", err);
+      setTokenAmount("0");
     }
+
     if (inputEpixAmount > tokenInfo.epixBal) {
       setBtnMsg("Insufficient funds");
       setErrMsg("Insufficient funds");
@@ -213,10 +230,13 @@ function TradingView({
     if (swapToggle) {
       // sell
       setTokenAmount(tokenInfo?.balance ? tokenInfo?.balance : "0.00");
-      getAmountOutEPIX(Number(tokenInfo?.balance ? tokenInfo?.balance : "0.00"));
+      getAmountOutEPIX(
+        Number(tokenInfo?.balance ? tokenInfo?.balance : "0.00")
+      );
       setBtnMsgInBepeAmount(
         Number(tokenInfo?.balance ? tokenInfo?.balance : "0.00")
-      ); 3
+      );
+      3;
     } else {
       // buy
       const maxEpixVal =
@@ -266,8 +286,10 @@ function TradingView({
 
   const handleSwap = async () => {
     if (curveInfo?.status !== 0) {
-      window.open(`https://app.uniswap.org/swap?inputCurrency=ETH&outputCurrency=${curveInfo?.token}&chain=base`)
-      return
+      window.open(
+        `https://app.uniswap.org/swap?inputCurrency=ETH&outputCurrency=${curveInfo?.token}&chain=base`
+      );
+      return;
     }
     if (curveInfo?.status === undefined || Number(curveInfo?.status) !== 0) {
       toast.warn("Curve is inactive.", toastConfig);
@@ -290,186 +312,170 @@ function TradingView({
       return;
     }
     setPending(true);
+
+    const signer = await provider.getSigner();
+    const contract = new ethers.Contract(Config.CURVE, curveABI, signer);
+
     try {
       const _deadline = parseInt(Date.now() / 1000) + Number(deadline) * 60;
       let data = {};
+
       if (!swapToggle) {
         if (Number(epixAmount) <= 0) {
           setPending(false);
           toast.warn(
-            `Please input EPIX amount to buy ${curveInfo?.symbol ? curveInfo?.symbol : "token"
-            }!`,
+            `Please input EPIX amount to buy ${curveInfo?.symbol ?? "token"}!`,
             toastConfig
           );
           return;
         }
-        const requiredEpixBal = Number(epixAmount) * (1 + Config.CURVE_SWAP_FEE);
-        const tokenMin = (Number(tokenAmount) * (100 - slippage)) / 100;
 
-        const referrer = window?.localStorage?.getItem("alpha_ref");
+        try {
+          setPending(true);
 
-        data = {
-          address: Config.CURVE,
-          abi: curveABI,
-          functionName: "buy",
-          args: [
+          const requiredEpixBal =
+            Number(epixAmount) * (1 + Config.CURVE_SWAP_FEE);
+          const tokenMin = (Number(tokenAmount) * (100 - slippage)) / 100;
+
+          const referrer = window?.localStorage?.getItem("alpha_ref");
+          const validRef = isValidAddress(referrer)
+            ? referrer
+            : "0x0000000000000000000000000000000000000000";
+
+          const value = ethers.parseUnits(
+            requiredEpixBal.toFixed(8),
+            Config.WETH_DEC
+          );
+          const tokenMinParsed = ethers.parseUnits(
+            tokenMin.toFixed(8),
+            Config.CURVE_DEC
+          );
+
+          const tx = await contract.buy(
             tokenAddr,
-            parseUnits(tokenMin.toFixed(8), Config.CURVE_DEC),
+            tokenMinParsed,
             _deadline,
-            isValidAddress(referrer) ? referrer : "0x0000000000000000000000000000000000000000"
-          ],
-          value: parseUnits(requiredEpixBal.toFixed(8), Config.WETH_DEC),
-        };
-        const encodedData = encodeFunctionData(data);
-        await estimateGas(config, {
-          ...account,
-          data: encodedData,
-          to: data.address,
-          value: data.value,
-        });
-        const txHash = await writeContract(config, {
-          ...account,
-          ...data,
-        });
-
-        const txPendingData = waitForTransactionReceipt(config, {
-          hash: txHash,
-        });
-        toast.promise(
-          txPendingData,
-          {
-            pending: "Waiting for pending... 👌",
-          },
-          toastConfig
-        );
-
-        const txData = await txPendingData;
-        if (txData && txData.status === "success") {
-          setEpixAmount("0");
-          setTokenAmount("0");
-          toast.success(`Successfully swapped token! 👍`, toastConfig);
-          setRefresh(!refresh);
-        } else {
-          toast.error("Error! Transaction is failed.", toastConfig);
-        }
-      } else {
-        if (Number(tokenAmount) <= 0) {
-          setPending(false);
-          toast.warn(
-            `Please input ${curveInfo?.symbol ? curveInfo?.symbol : "token"
-            } amount to sell!`,
-            toastConfig
+            validRef,
+            { value }
           );
-          return;
-        }
-        const _data = await multicall(Config.config, {
-          contracts: [
-            {
-              address: tokenAddr,
-              abi: erc20ABI,
-              functionName: "allowance",
-              args: [
-                account.address,
-                Config.CURVE
-              ],
-            },
-          ],
-        });
-        const allowance =
-          _data[0].status === "success"
-            ? parseFloat(formatUnits(_data[0].result, Config.CURVE_DEC))
-            : 0;
 
-        let encodedData;
-        let txHash;
-        let txPendingData;
-        let txData;
-        if (allowance < Number(tokenAmount)) {
-          data = {
-            address: tokenAddr,
-            abi: erc20ABI,
-            functionName: "approve",
-            args: [
-              Config.CURVE,
-              Config.MAX_UINT256
-            ],
-            value: 0,
-          };
-          encodedData = encodeFunctionData(data);
-          await estimateGas(config, {
-            ...account,
-            data: encodedData,
-            to: data.address,
-            value: data.value,
-          });
-          txHash = await writeContract(config, {
-            ...account,
-            ...data,
-          });
-
-          txPendingData = waitForTransactionReceipt(config, {
-            hash: txHash,
-          });
           toast.promise(
-            txPendingData,
+            tx.wait(),
             {
               pending: "Waiting for pending... 👌",
             },
             toastConfig
           );
 
-          txData = await txPendingData;
-          if (txData && txData.status === "success") {
-            toast.success(`Successfully enabled token! 👍`, toastConfig);
+          const receipt = await tx.wait();
+
+          if (receipt.status === 1) {
+            setEpixAmount("0");
+            setTokenAmount("0");
+            toast.success(`Successfully swapped token! 👍`, toastConfig);
+            setRefresh(!refresh);
           } else {
-            setPending(false);
-            toast.error("Error! Transaction is failed.", toastConfig);
-            return;
+            toast.error("Error! Transaction failed.", toastConfig);
           }
+        } catch (error) {
+          console.error("Swap failed:", error);
+          toast.error(
+            "Transaction failed. Please check your input or try again.",
+            toastConfig
+          );
+        } finally {
+          setPending(false);
+        }
+      } else {
+        if (Number(tokenAmount) <= 0) {
+          setPending(false);
+          toast.warn(
+            `Please input ${curveInfo?.symbol ?? "token"} amount to sell!`,
+            toastConfig
+          );
+          return;
         }
 
-        const epixMin = (Number(epixAmount) * (100 - slippage)) / 100;
-        data = {
-          address: Config.CURVE,
-          abi: curveABI,
-          functionName: "sell",
-          args: [
+        try {
+          setPending(true);
+
+          const signer = await provider.getSigner();
+          const userAddress = await signer.getAddress();
+
+          const erc20Contract = new ethers.Contract(
             tokenAddr,
-            parseUnits(Number(tokenAmount).toFixed(8), Config.CURVE_DEC),
-            parseUnits(epixMin.toFixed(8), Config.WETH_DEC),
-            _deadline,
-          ],
-        };
-        encodedData = encodeFunctionData(data);
-        await estimateGas(config, {
-          ...account,
-          data: encodedData,
-          to: data.address,
-        });
-        txHash = await writeContract(config, {
-          ...account,
-          ...data,
-        });
+            erc20ABI,
+            signer
+          );
 
-        txPendingData = waitForTransactionReceipt(config, {
-          hash: txHash,
-        });
-        toast.promise(
-          txPendingData,
-          {
-            pending: "Waiting for pending... 👌",
-          },
-          toastConfig
-        );
+          const allowance = await erc20Contract.allowance(
+            userAddress,
+            Config.CURVE
+          );
 
-        txData = await txPendingData;
-        if (txData && txData.status === "success") {
-          setEpixAmount("0");
-          setTokenAmount("0");
-          setRefresh(!refresh);
-          toast.success(`Successfully swapped token! 👍`, toastConfig);
-        } else {
-          toast.error("Error! Transaction is failed.", toastConfig);
+          const tokenAmountParsed = ethers.parseUnits(
+            tokenAmount.toString(),
+            Config.CURVE_DEC
+          );
+
+          if (allowance < Number(tokenAmountParsed)) {
+            const approveTx = await erc20Contract.approve(
+              Config.CURVE,
+              Config.MAX_UINT256
+            );
+          
+            toast.promise(approveTx.wait(), {
+              pending: "Waiting for pending... 👌",
+            }, toastConfig);
+          
+            const approveReceipt = await approveTx.wait();
+            if (approveReceipt.status !== 1) {
+              setPending(false);
+              toast.error("Error! Approve transaction failed.", toastConfig);
+              return;
+            }
+          
+            toast.success("Successfully enabled token! 👍", toastConfig);
+          }
+
+          const epixMin = (Number(epixAmount) * (100 - slippage)) / 100;
+
+          const curveContract = new ethers.Contract(
+            Config.CURVE,
+            curveABI,
+            signer
+          );
+          const sellTx = await curveContract.sell(
+            tokenAddr,
+            ethers.parseUnits(Number(tokenAmount).toFixed(8), Config.CURVE_DEC),
+            ethers.parseUnits(epixMin.toFixed(8), Config.WETH_DEC),
+            _deadline
+          );
+          toast.promise(
+            sellTx.wait(),
+            {
+              pending: "Waiting for pending... 👌",
+            },
+            toastConfig
+          );
+
+          const sellReceipt = await sellTx.wait();
+          if (sellReceipt.status === 1) {
+            setEpixAmount("0");
+            setTokenAmount("0");
+            setRefresh(!refresh);
+            toast.success("Successfully swapped token! 👍", toastConfig);
+          } else {
+            toast.error("Error! Sell transaction failed.", toastConfig);
+          }
+        } catch (err) {
+          console.error("Sell error:", err);
+          toast.error(
+            "Transaction failed. Check console for details.",
+            toastConfig
+          );
+        } finally {
+          setPending(false);
         }
       }
     } catch (err) {
@@ -547,7 +553,8 @@ function TradingView({
 
                         {/* links */}
                         <div className="links flex gap-2.5">
-                          {curveInfo?.website && curveInfo?.website.length > 0 ? (
+                          {curveInfo?.website &&
+                          curveInfo?.website.length > 0 ? (
                             <a
                               href={curveInfo?.website}
                               className="website text-base hover:text-secondary transition-all duration-300"
@@ -558,7 +565,8 @@ function TradingView({
                           ) : (
                             <></>
                           )}
-                          {curveInfo?.telegram && curveInfo?.telegram.length > 0 ? (
+                          {curveInfo?.telegram &&
+                          curveInfo?.telegram.length > 0 ? (
                             <a
                               href={curveInfo?.telegram}
                               className="telegram text-base hover:text-secondary transition-all duration-300"
@@ -569,7 +577,8 @@ function TradingView({
                           ) : (
                             <></>
                           )}
-                          {curveInfo?.twitter && curveInfo?.twitter.length > 0 ? (
+                          {curveInfo?.twitter &&
+                          curveInfo?.twitter.length > 0 ? (
                             <a
                               href={curveInfo?.twitter}
                               className="twitter text-base hover:text-secondary transition-all duration-300"
@@ -606,21 +615,36 @@ function TradingView({
                       </div>
                     </div>
 
-                    <EasingY cls="h-[500px] md:h-[calc(100%-70px)]" value={-60} delay={0.1}>
+                    <EasingY
+                      cls="h-[500px] md:h-[calc(100%-70px)]"
+                      value={-60}
+                      delay={0.1}
+                    >
                       <div
                         className="tradingview-widget-container h-full !border !border-gray-500 !rounded-md"
                         ref={container}
                         style={{ height: "99.5%", width: "100%" }}
                       >
-                        {curveInfo.symbol && tokenAddr ? curveInfo?.status !== undefined && Number(curveInfo?.status) !== 2 ?
-                          <Chart
-                            stock={"Stock"}
-                            interval="1"
-                            tokenId={tokenAddr}
-                            symbol={`${curveInfo.symbol ? curveInfo.symbol : "---"
-                              }/USD`
-                            }
-                          /> : <iframe src={`https://dexscreener.com/base/${tokenAddr}?embed=1&theme=dark&trades=0&info=0`} className="w-full h-full" /> : <></>}
+                        {curveInfo.symbol && tokenAddr ? (
+                          curveInfo?.status !== undefined &&
+                          Number(curveInfo?.status) !== 2 ? (
+                            <Chart
+                              stock={"Stock"}
+                              interval="1"
+                              tokenId={tokenAddr}
+                              symbol={`${
+                                curveInfo.symbol ? curveInfo.symbol : "---"
+                              }/USD`}
+                            />
+                          ) : (
+                            <iframe
+                              src={`https://dexscreener.com/base/${tokenAddr}?embed=1&theme=dark&trades=0&info=0`}
+                              className="w-full h-full"
+                            />
+                          )
+                        ) : (
+                          <></>
+                        )}
                       </div>
                     </EasingY>
                   </div>
@@ -635,15 +659,22 @@ function TradingView({
               >
                 {t("comment")}
               </Button>
-              <Button className="text-md font-bold text-white" onClick={() => setCommentToggle(false)}>{t("trades")}</Button>
+              <Button
+                className="text-md font-bold text-white"
+                onClick={() => setCommentToggle(false)}
+              >
+                {t("trades")}
+              </Button>
             </div>
-            {
-              !toggleComment ? <TokenTrades
+            {!toggleComment ? (
+              <TokenTrades
                 tokenAddr={tokenAddr}
                 tokenInfo={tokenInfo}
-                curveInfo={curveInfo} /> :
-                <span>{curveInfo.description}</span>
-            }
+                curveInfo={curveInfo}
+              />
+            ) : (
+              <span>{curveInfo.description}</span>
+            )}
           </div>
 
           {/* swap */}
@@ -651,113 +682,190 @@ function TradingView({
             <TokenSidebarInfo curveInfo={curveInfo} />
             <div className="space-y-2 mt-8 mb-6">
               <div className="text-md text-white font-bold">
-                {`Bonding Curve Progress: ${curveInfo?.funds >= 0
+                {`Bonding Curve Progress: ${
+                  curveInfo?.funds >= 0
                     ? curveInfo.funds > Config.CURVE_HARDCAP
                       ? 100
                       : (
-                        (curveInfo.funds * 100) /
-                        Config.CURVE_HARDCAP
-                      ).toFixed(2)
-                    : 0
-                  }%`}
-              </div>
-              <div className="w-full h-2 bg-[#474647]  rounded-full overflow-hidden">
-                <div className="h-full bg-linear-to-r from-[#8346FF] to-[#9458DF]"
-                  style={{
-                    width: `${curveInfo?.funds >= 0
-                      ? curveInfo.funds > Config.CURVE_HARDCAP
-                        ? 100
-                        : (
                           (curveInfo.funds * 100) /
                           Config.CURVE_HARDCAP
                         ).toFixed(2)
-                      : 0
-                      }%`,
-                  }}></div>
+                    : 0
+                }%`}
+              </div>
+              <div className="w-full h-2 bg-[#474647]  rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-linear-to-r from-[#8346FF] to-[#9458DF]"
+                  style={{
+                    width: `${
+                      curveInfo?.funds >= 0
+                        ? curveInfo.funds > Config.CURVE_HARDCAP
+                          ? 100
+                          : (
+                              (curveInfo.funds * 100) /
+                              Config.CURVE_HARDCAP
+                            ).toFixed(2)
+                        : 0
+                    }%`,
+                  }}
+                ></div>
               </div>
             </div>
             <div className="bg-[#191C2F] rounded-4xl p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <Label className="text-white font-bold">{t("mevProtection")}</Label>
+                  <Label className="text-white font-bold">
+                    {t("mevProtection")}
+                  </Label>
                   <button
                     onClick={() => setMEVProtect(!mevProtect)}
                     className={`w-12 h-6 rounded-full transition-colors relative bg-gray-700`}
                   >
-                    {
-                      !mevProtect ? <div className={`absolute w-5 h-5 rounded-full bg-linear-to-r from-[#8346FF] to-[#9458DF] top-0.5 transition-transform`} /> :
-                        <div className={`absolute w-5 h-5 rounded-full bg-linear-to-r from-[#8346FF] to-[#9458DF] top-0.5 left-7 transition-transform`} />
-                    }
+                    {!mevProtect ? (
+                      <div
+                        className={`absolute w-5 h-5 rounded-full bg-linear-to-r from-[#8346FF] to-[#9458DF] top-0.5 transition-transform`}
+                      />
+                    ) : (
+                      <div
+                        className={`absolute w-5 h-5 rounded-full bg-linear-to-r from-[#8346FF] to-[#9458DF] top-0.5 left-7 transition-transform`}
+                      />
+                    )}
                   </button>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 mb-4">
-                {
-                  !swapToggle ? <Button className="font-bold text-white text-md" onClick={() => setSwapToggle(false)}>{t("buy")}</Button> :
-                    <Button variant="outline" className="font-bold text-white text-md" onClick={() => setSwapToggle(false)}>{t("buy")}</Button>
-                }
-                {
-                  !swapToggle ? <Button variant="outline" className=" text-white font0-bold text-md" onClick={() => setSwapToggle(true)}>{t("sell")}</Button> :
-                    <Button className=" text-white font0-bold text-md" onClick={() => setSwapToggle(true)}>{t("sell")}</Button>
-                }
+                {!swapToggle ? (
+                  <Button
+                    className="font-bold text-white text-md"
+                    onClick={() => setSwapToggle(false)}
+                  >
+                    {t("buy")}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="font-bold text-white text-md"
+                    onClick={() => setSwapToggle(false)}
+                  >
+                    {t("buy")}
+                  </Button>
+                )}
+                {!swapToggle ? (
+                  <Button
+                    variant="outline"
+                    className=" text-white font0-bold text-md"
+                    onClick={() => setSwapToggle(true)}
+                  >
+                    {t("sell")}
+                  </Button>
+                ) : (
+                  <Button
+                    className=" text-white font0-bold text-md"
+                    onClick={() => setSwapToggle(true)}
+                  >
+                    {t("sell")}
+                  </Button>
+                )}
               </div>
 
-              {
-                !swapToggle && <div className="text-sm bg-gradient-to-r from-[#0CA1B7] to-[#AB9003] bg-clip-text text-transparent mb-2 flex flex-1 justify-between">
-                  <span>{t("switchTo")} {curveInfo.name}</span>
-                  <Button className="text-white" onClick={() => handleMax()}>{t("max")}</Button>
+              {!swapToggle && (
+                <div className="text-sm bg-gradient-to-r from-[#0CA1B7] to-[#AB9003] bg-clip-text text-transparent mb-2 flex flex-1 justify-between">
+                  <span>
+                    {t("switchTo")} {curveInfo.name}
+                  </span>
+                  <Button className="text-white" onClick={() => handleMax()}>
+                    {t("max")}
+                  </Button>
                 </div>
-              }
-              <div className="text-sm text-white mb-4">{t("balance")} {!swapToggle ? tokenInfo.epixBal : tokenInfo.balance}</div>
+              )}
+              <div className="text-sm text-white mb-4">
+                {t("balance")}{" "}
+                {!swapToggle ? tokenInfo.epixBal : tokenInfo.balance}
+              </div>
 
               <div className="flex items-center space-x-2 mb-4 bg-[#232321] p-3 rounded-4xl">
-                {
-                  !swapToggle ? <img
+                {!swapToggle ? (
+                  <img
                     src="/token-icon.svg"
                     className="w-6 h-6 rounded-full"
                     alt="Token"
-                  /> :
-                    <img
-                      src={curveInfo.logo}
-                      className="w-6 h-6 rounded-full"
-                      alt="Token"
-                    />
-                }
-                <span className="text-white font-bold">{!swapToggle ? 'EPIX' : curveInfo.name}</span>
-                <input className="w-full pl-4 focus:outline-none focus:border-none caret-white text-white" onChange={(e) => handleChangeAmount(e, !swapToggle)} value={!swapToggle ? epixAmount : tokenAmount}></input>
+                  />
+                ) : (
+                  <img
+                    src={curveInfo.logo}
+                    className="w-6 h-6 rounded-full"
+                    alt="Token"
+                  />
+                )}
+                <span className="text-white font-bold">
+                  {!swapToggle ? "EPIX" : curveInfo.name}
+                </span>
+                <input
+                  className="w-full pl-4 focus:outline-none focus:border-none caret-white text-white"
+                  onChange={(e) => handleChangeAmount(e, !swapToggle)}
+                  value={!swapToggle ? epixAmount : tokenAmount}
+                ></input>
               </div>
 
-              <div className={`grid ${!swapToggle ? "grid-cols-3" : "grid-cols-4"} gap-2 mb-6`}>
-                {!swapToggle ? (["0.1 EPIX", "0.5 EPIX", "1 EPIX"].map((amount) => (
-                  <Button
-                    key={amount}
-                    variant="ghost"
-                    className="bg-[#232321] text-white font-bold hover:bg-[#2C2C2C] hover:text-white cursor-pointer"
-                    onClick={() => setEpixAmount(amount.split(" ")[0])}
-                  >
-                    {amount}
-                  </Button>
-                ))) : (["25%", "50%", "75%", "100%"].map((amount) => (
-                  <Button
-                    key={amount}
-                    variant="ghost"
-                    className="bg-[#232321] text-white font-bold hover:bg-[#2C2C2C] hover:text-white cursor-pointer"
-                    onClick={() => setTokenAmount((Number(amount.slice(0, -1)) * curveInfo?.balance / 100).toString())}
-                  >
-                    {amount}
-                  </Button>
-                )))}
+              <div
+                className={`grid ${
+                  !swapToggle ? "grid-cols-3" : "grid-cols-4"
+                } gap-2 mb-6`}
+              >
+                {!swapToggle
+                  ? ["0.1 EPIX", "0.5 EPIX", "1 EPIX"].map((amount) => (
+                      <Button
+                        key={amount}
+                        variant="ghost"
+                        className="bg-[#232321] text-white font-bold hover:bg-[#2C2C2C] hover:text-white cursor-pointer"
+                        onClick={() => setEpixAmount(amount.split(" ")[0])}
+                      >
+                        {amount}
+                      </Button>
+                    ))
+                  : ["25%", "50%", "75%", "100%"].map((amount) => (
+                      <Button
+                        key={amount}
+                        variant="ghost"
+                        className="bg-[#232321] text-white font-bold hover:bg-[#2C2C2C] hover:text-white cursor-pointer"
+                        onClick={() =>
+                          setTokenAmount(
+                            (
+                              (Number(amount.slice(0, -1)) *
+                                curveInfo?.balance) /
+                              100
+                            ).toString()
+                          )
+                        }
+                      >
+                        {amount}
+                      </Button>
+                    ))}
               </div>
 
-              <Button className="w-full bg-yellow-500 text-white text-md hover:bg-yellow-400 font-bold" onClick={handleSwap}>
+              <Button
+                className="w-full bg-yellow-500 text-white text-md hover:bg-yellow-400 font-bold"
+                onClick={handleSwap}
+              >
                 {t("trade")}
               </Button>
               <span className="text-white mt-5 px-2 block text-sm font-bold">
-                {t("thereare")} <b className="text-md">{curveInfo ? (Number(curveInfo.totalSupply) - Number(curveInfo.supply)).toFixed(2) : "1000,000,000"} {curveInfo ? curveInfo.symbol : "Token"}</b> {t("stillAvailable")}{" "}
+                {t("thereare")}{" "}
+                <b className="text-md">
+                  {curveInfo
+                    ? (
+                        Number(curveInfo.totalSupply) - Number(curveInfo.supply)
+                      ).toFixed(2)
+                    : "1000,000,000"}{" "}
+                  {curveInfo ? curveInfo.symbol : "Token"}
+                </b>{" "}
+                {t("stillAvailable")}{" "}
                 <b className="text-md">{curveInfo?.funds} EPIX </b>(
-                <b className="text-md">{t("raisedAmount")}: 18.8 EPIX</b>){t("intheBondingCurve")}.
-                {t("whenMCReached")} <b className="text-md">${Number(curveInfo.mc).toFixed(2)}</b> {t("allLiquidity")}
+                <b className="text-md">{t("raisedAmount")}: 18.8 EPIX</b>)
+                {t("intheBondingCurve")}.{t("whenMCReached")}{" "}
+                <b className="text-md">${Number(curveInfo.mc).toFixed(2)}</b>{" "}
+                {t("allLiquidity")}
               </span>
             </div>
             <TokenSupply holderData={holderData} />

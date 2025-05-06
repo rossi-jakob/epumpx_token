@@ -101,10 +101,17 @@ export const CreateForms = () => {
       // const tokenMin = _tokenAmount * (100 - slippage) / 100
       // const requiredBnbBal = Config.CURVE_CREATE_FEE + Number(amount) * (1 + Config.CURVE_SWAP_FEE)
 
-      const provider = new ethers.JsonRpcProvider(Config.RPC_URL);
+      let rawAddress = account.address || ''
+      const normalizedAddress = rawAddress.startsWith('0x') ? rawAddress : `0x${rawAddress}`
 
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      //const provider = new ethers.JsonRpcProvider(Config.RPC_URL);
+      const signer = await provider.getSigner();
       // 1. Curve Contract Call
-      const curveContract = new ethers.Contract(Config.CURVE, curveABI, provider);
+      const curveContract = new ethers.Contract(Config.CURVE, curveABI, signer);
 
       const amountIn = ethers.parseUnits(amount.toString(), Config.WETH_DEC);
       const amountOut = await curveContract._getAmountOutToken(
@@ -114,23 +121,31 @@ export const CreateForms = () => {
       );
 
       // 2. Get ETH Balance of Account
-      let rawAddress = account.address || ''
-      const normalizedAddress = rawAddress.startsWith('0x') ? rawAddress : `0x${rawAddress}`
-      const balance = await provider.getBalance(normalizedAddress);
 
+      const balance = await provider.getBalance(normalizedAddress);
       const slippage = 0.5;
       const _tokenAmount = parseFloat(formatUnits(amountOut, Config.CURVE_DEC));
       const bnbBal = account.address ? parseFloat(formatUnits(balance, Config.WETH_DEC)) : 0
       const tokenMin = _tokenAmount * (100 - slippage) / 100
       const requiredBnbBal = Config.CURVE_CREATE_FEE + Number(amount) * (1 + Config.CURVE_SWAP_FEE)
 
-      console.log("bal==============", requiredBnbBal, bnbBal, _tokenAmount)
       if (requiredBnbBal > bnbBal) {
         setPending(false)
         toast.warn("Insufficint funds")
         return
       }
 
+      console.log("name:", name);
+      console.log("symbol:", symbol);
+      console.log("logo:", logo);
+      console.log("tokenMin:", tokenMin);
+      console.log("tokenMinParsed:", ethers.parseUnits(tokenMin.toFixed(8), Config.CURVE_DEC));
+      console.log("description:", description);
+      console.log("twitter:", twitter);
+      console.log("telegram:", telegram);
+      console.log("website:", website);
+      console.log("value:", requiredBnbBal);
+      console.log("valueParsed:", ethers.parseUnits(requiredBnbBal.toFixed(8), Config.WETH_DEC));
       // Prepare the transaction data
       const data = {
         to: Config.CURVE,
@@ -152,66 +167,65 @@ export const CreateForms = () => {
       // 1. Encode the function call data
       const encodedData = curveContract.interface.encodeFunctionData(data.functionName, data.args);
 
-      console.log("encode======", encodedData)
       // 2. Estimate gas for the transaction
-      const estimate = await provider.estimateGas({
-        to: data.to,
-        data: encodedData,
-        value: data.value,
-      });
+      try {
+        const estimate = await signer.estimateGas({
+          to: data.to,
+          data: encodedData,
+          value: data.value,
+        });
+        console.log("Estimated gas:", estimate.toString());
+        // 3. Write the transaction (send it to the network)
+        const tx = await curveContract.createCurve(...data.args, {
+          value: data.value,
+          gasLimit: estimate,
+        });
 
-      console.log("estimate======", estimate)
-      // 3. Write the transaction (send it to the network)
-      const tx = await curveContract.createCurve(...data.args, {
-        value: data.value,
-        gasLimit: estimate,
-      });
+        console.log("tx======", tx)
+        // 4. Wait for the transaction receipt
+        const txData = await tx.wait();
 
-      console.log("tx======", tx)
-      // 4. Wait for the transaction receipt
-      const receipt = await tx.wait();
+        // toast.promise(
+        //   tx,
+        //   {
+        //     pending: "Waiting for pending... 👌",
+        //   }
+        // );
 
-      console.log("Transaction receipt:", receipt);
+        console.log('handleMint writeData: txHash: ', tx)
+        //const txData = await tx;
+        if (txData && txData.status == 1) {
+          toast.success(`Successfully created token! 👍`);
+          setRefresh(!refresh);
+          setName("")
+          setSymbol("")
+          setDescription("")
+          setAmount(0)
+          setWebsite('')
+          setTwitter('')
+          setTelegram('')
+          for (let i = 0; i < txData.logs.length; i++) {
+            try {
+              const decodeData = decodeEventLog({
+                abi: curveABI,
+                data: txData.logs[i].data,
+                topics: txData.logs[i].topics
+              })
 
-      toast.promise(
-        receipt,
-        {
-          pending: "Waiting for pending... 👌",
-        }
-      );
-
-      console.log('handleMint writeData: txHash: ', tx)
-      const txData = await receipt;
-      if (txData && txData.status === "success") {
-        toast.success(`Successfully created token! 👍`);
-        setRefresh(!refresh);
-        setName("")
-        setSymbol("")
-        setDescription("")
-        setAmount(0)
-        setWebsite('')
-        setTwitter('')
-        setTelegram('')
-        for (let i = 0; i < txData.logs.length; i++) {
-          try {
-            const decodeData = decodeEventLog({
-              abi: curveABI,
-              data: txData.logs[i].data,
-              topics: txData.logs[i].topics
-            })
-
-            const args = decodeData.args as any;
-            if (decodeData.eventName === "CurveCreated" && args.token) {
-              router.push(`/token/${args.token}`)
+              const args = decodeData.args as any;
+              if (decodeData.eventName === "CurveCreated" && args.token) {
+                router.push(`/token/${args.token}`)
+              }
+            } catch (error) {
+              console.log('error', error)
             }
-          } catch (error) {
-            console.log('error', error)
           }
+        } else {
+          toast.error("Error! Transaction is failed.");
         }
-      } else {
-        toast.error("Error! Transaction is failed.");
+      } catch (err) {
+        console.error("Gas estimation failed:", err);
       }
-
       setLogo("");
     }
 
