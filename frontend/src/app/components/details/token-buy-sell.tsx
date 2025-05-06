@@ -343,9 +343,9 @@ function TokenBuySell({
 
         // Setup provider and signer (e.g., from wallet connection)
         const provider = new ethers.JsonRpcProvider(Config.RPC_URL); // or injected provider
-        const signer = new ethers.Wallet(account.privateKey, provider); // or use connected signer
+        // const signer = new ethers.Wallet(account.privateKey, provider); // or use connected signer
 
-        const curveContract = new ethers.Contract(Config.CURVE, curveABI, signer);
+        const curveContract = new ethers.Contract(Config.CURVE, curveABI, provider);
 
         const tokenMinParsed = ethers.parseUnits(tokenMin.toFixed(8), Config.CURVE_DEC);
         const valueParsed = ethers.parseUnits(requiredEpixBal.toFixed(8), Config.WETH_DEC);

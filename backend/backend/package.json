@@ -1,0 +1,29 @@
+{
+  "name": "curve-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "nodemon ./server.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.7.2",
+    "cors": "^2.8.5",
+    "cross-fetch": "^4.0.0",
+    "csv-parse": "^5.5.0",
+    "ethereum-multicall": "^2.24.0",
+    "ethereumjs-util": "^7.1.5",
+    "ethers": "^5.8.0",
+    "express": "^4.19.2",
+    "mongoose": "^7.5.0",
+    "multer": "^1.4.5-lts.1",
+    "node-telegram-utils": "^0.64.0",
+    "nodemon": "^3.0.1",
+    "socket.io": "^4.7.5",
+    "subscriptions-transport-ws": "^0.11.0",
+    "uuid": "^10.0.0",
+    "viem": "^2.17.11",
+    "web3": "^4.10.0",
+    "ws": "^8.18.0"
+  }
+}

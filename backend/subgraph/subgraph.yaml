@@ -1,0 +1,62 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: curve
+    network: chapel
+    source:
+      address: "0xC76EbF4c4461De3f88DE62286Eb4400C9B89E769"
+      abi: curve
+      startBlock: 49749714
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Buy
+        - CurveCompleted
+        - CurveCreated
+        - CurveLaunched
+        - KingOfTheHill
+        - Sell
+        - Trade
+        - PendingCurve
+      abis:
+        - name: curve
+          file: ./abis/curve.json
+      eventHandlers:
+        - event: Buy(indexed address,indexed address,uint256,uint256,uint256,uint256,indexed address)
+          handler: handleBuy
+        - event: CurveCompleted(indexed address)
+          handler: handleCurveCompleted
+        - event: CurveCreated(indexed address,indexed address,uint256,uint256)
+          handler: handleCurveCreated
+        - event: CurveLaunched(indexed address)
+          handler: handleCurveLaunched
+        - event: KingOfTheHill(indexed address,indexed address,uint256)
+          handler: handleKingOfTheHill
+        - event: Sell(indexed address,indexed address,uint256,uint256,uint256,uint256)
+          handler: handleSell
+      file: ./src/curve.ts
+templates:
+  - kind: ethereum
+    name: token
+    network: chapel
+    source:
+      abi: token
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/curve-core.ts
+      entities:
+        - Balances
+      abis:
+        - name: token
+          file: ./abis/token.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer

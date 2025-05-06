@@ -1,0 +1,6 @@
+node_modules
+uploads/logos/*
+!uploads/logos/dummy
+.config.json
+.config.test.json
+config/config.js
