@@ -12,7 +12,7 @@ export default function RankingPage() {
   const { allTokenInfoArray } = useCurveStatus(true);
 
   useEffect(() => {
-    if (allTokenInfoArray?.length>1)
+    if (allTokenInfoArray?.length>=1 || allTokenInfoArray)
     {
       setLoaded(true)
     }  
