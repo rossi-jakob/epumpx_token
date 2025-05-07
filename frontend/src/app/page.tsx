@@ -1,5 +1,5 @@
 'use client'
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import DiscoverTags from "./components/home/discovery";
 //import Partners from "./components/home/pratners";
@@ -11,9 +11,13 @@ import Spinner from '@/components/ui/spinner';
 export default function Home() {
   const { allTokenInfoArray } = useCurveStatus(true);
 
+  useEffect(()=>{
+
+  }, [allTokenInfoArray])
+
   return (
     <>
-      {(!allTokenInfoArray || allTokenInfoArray.length <= 0) && <Spinner />}
+      {(!allTokenInfoArray) && <Spinner />}
       <div>
         <Hero />
         <TopTokens allTokenInfoArray={allTokenInfoArray} />

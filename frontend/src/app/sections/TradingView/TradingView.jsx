@@ -716,7 +716,7 @@ function TradingView({
               </div>
             </div>
             <div className="bg-[#191C2F] rounded-4xl p-6">
-              <div className="flex items-center justify-between mb-4">
+              {/* <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Label className="text-white font-bold">
                     {t("mevProtection")}
@@ -736,7 +736,7 @@ function TradingView({
                     )}
                   </button>
                 </div>
-              </div>
+              </div> */}
 
               <div className="grid grid-cols-2 gap-2 mb-4">
                 {!swapToggle ? (
