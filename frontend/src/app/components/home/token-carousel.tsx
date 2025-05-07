@@ -22,19 +22,22 @@ export function TokenCarousel({
 }: TokenCarouselProps) {
   const controls = useAnimation();
   const containerRef = useRef<HTMLDivElement>(null);
-  const scrollWidthRef = useRef(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const currentX = useRef(0);
+  const scrollWidthRef = useRef(0);
   const router = useRouter();
   const { t } = useTranslation();
 
-  const speed = 100; // px per second
+  const speed = 100; // pixels per second
 
-  const startAnimation = () => {
-    const containerWidth = scrollWidthRef.current;
-    const duration = containerWidth / speed;
+  const calculateDuration = (width: number) => width / speed;
+
+  const startLoop = () => {
+    const width = scrollWidthRef.current;
+    const duration = calculateDuration(width);
 
     controls.start({
-      x: direction === "ltr" ? -containerWidth : 0,
+      x: direction === "ltr" ? -width : 0,
       transition: {
         repeat: Infinity,
         repeatType: "loop",
@@ -45,16 +48,18 @@ export function TokenCarousel({
   };
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) return;
 
-    // Wait for DOM to paint
     requestAnimationFrame(() => {
-      scrollWidthRef.current = container.scrollWidth / 2;
+      const fullWidth = scrollEl.scrollWidth;
+      scrollWidthRef.current = fullWidth / 2;
+
       const initialX = direction === "ltr" ? 0 : -scrollWidthRef.current;
       currentX.current = initialX;
       controls.set({ x: initialX });
-      startAnimation();
+
+      startLoop();
     });
 
     return () => controls.stop();
@@ -63,19 +68,20 @@ export function TokenCarousel({
   return (
     <div className="w-full overflow-hidden" ref={containerRef}>
       <motion.div
+        ref={scrollRef}
         animate={controls}
-        className="flex gap-4"
-        style={{ width: "max-content" }}
+        className="whitespace-nowrap inline-flex"
         onMouseEnter={() => controls.stop()}
         onMouseLeave={() => {
+          const width = scrollWidthRef.current;
           const fromX = currentX.current;
-          const containerWidth = scrollWidthRef.current;
-          const duration = Math.abs(
-            direction === "ltr" ? fromX + containerWidth : fromX
-          ) / speed;
+          const remaining = direction === "ltr"
+            ? fromX + width
+            : Math.abs(fromX);
+          const duration = remaining / speed;
 
           controls.start({
-            x: direction === "ltr" ? -containerWidth : 0,
+            x: direction === "ltr" ? -width : 0,
             from: fromX,
             transition: {
               repeat: Infinity,
@@ -94,7 +100,7 @@ export function TokenCarousel({
         {[...tokens, ...tokens].map((token, index) => (
           <div
             key={index}
-            className="flex-shrink-0 select-none m-2 hover:cursor-pointer hover:outline hover:outline-2 hover:outline-[#8346FF] hover:rounded-full"
+            className="flex-shrink-0 select-none mx-2 hover:cursor-pointer hover:outline hover:outline-2 hover:outline-[#8346FF] hover:rounded-full"
             onClick={() => router.push(`/token/${token.address}`)}
           >
             <div className="bg-[#191C2F] rounded-full p-2 flex items-center space-x-3 w-[240px]">
@@ -102,7 +108,7 @@ export function TokenCarousel({
                 <img
                   src={token.logo === "" ? "/top-token.png" : token.logo}
                   alt="Token"
-                  className="w-full h-full rounded-full"
+                  className="w-full h-full rounded-full object-cover"
                 />
               </div>
               <div>
@@ -113,8 +119,8 @@ export function TokenCarousel({
                 <div className="text-white text-md font-bold">
                   {token.name.length > 5
                     ? token.name.slice(0, 2) +
-                      "..." +
-                      token.name.slice(-2)
+                    "..." +
+                    token.name.slice(-2)
                     : token.name}
                   /EPIX
                 </div>

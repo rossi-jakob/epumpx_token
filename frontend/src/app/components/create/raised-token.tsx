@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
 export const RaisedToken = () => {
-  const [selectedTags, setSelectedTags] = useState<number[]>([])
+  const [selectedTags, setSelectedTags] = useState<number[]>([1])
   const {t} = useTranslation()
 
   const toggleTag = (tag: number) => {
