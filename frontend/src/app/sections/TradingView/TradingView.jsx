@@ -423,18 +423,22 @@ function TradingView({
               Config.CURVE,
               Config.MAX_UINT256
             );
-          
-            toast.promise(approveTx.wait(), {
-              pending: "Waiting for pending... 👌",
-            }, toastConfig);
-          
+
+            toast.promise(
+              approveTx.wait(),
+              {
+                pending: "Waiting for pending... 👌",
+              },
+              toastConfig
+            );
+
             const approveReceipt = await approveTx.wait();
             if (approveReceipt.status !== 1) {
               setPending(false);
               toast.error("Error! Approve transaction failed.", toastConfig);
               return;
             }
-          
+
             toast.success("Successfully enabled token! 👍", toastConfig);
           }
 
@@ -833,7 +837,7 @@ function TradingView({
                           setTokenAmount(
                             (
                               (Number(amount.slice(0, -1)) *
-                                curveInfo?.balance) /
+                                tokenInfo?.balance) /
                               100
                             ).toString()
                           )

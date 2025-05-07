@@ -8,6 +8,7 @@ import axios from "../../utils/axios";
 import Socket from "../../utils/socket"
 import { getApolloData } from "../../utils/util";
 import { isValidAddress } from "../../utils/util";
+import { ethers } from "ethers"
 
 export function useCurveStatus(refresh = true, tokenAddr = '0x0000000000000000000000000000000000000000') {
   const chainId = useChainId()
@@ -18,118 +19,118 @@ export function useCurveStatus(refresh = true, tokenAddr = '0x000000000000000000
   const [kingCurve, setKingCurve] = useState({})
 
   //useEffect(() => {
-    // const fetchAllCurves = async () => {
-    //   try {
-    //     const _apolloData = await getApolloData();
-    //     const _currentKing = _apolloData?.currentKingOfTheHills?.length > 0 ? _apolloData?.currentKingOfTheHills[0] : {};
-    //     let contracts = []
-    //     contracts.push({
-    //       address: Config.CURVE,
-    //       abi: curveABI,
-    //       functionName: "allTokensLength",
-    //       args: []
-    //     })
-    //     const _lengthRaw = await multicall(Config.config, { contracts })
-    //     const _length = _lengthRaw[0].status === "success" ? parseInt(_lengthRaw[0].result) : 0
-    //     contracts = []
-    //     for (let i = 0; i < _length; i++) {
-    //       contracts.push({
-    //         address: Config.CURVE,
-    //         abi: curveABI,
-    //         functionName: "allTokens",
-    //         args: [i]
-    //       })
-    //     }
-    //     const _allTokensRaw = await multicall(Config.config, { contracts })
-    //     contracts = []
-    //     for (let i = 0; i < _length; i++) {
-    //       contracts.push({
-    //         address: Config.CURVE,
-    //         abi: curveABI,
-    //         functionName: "curveInfo",
-    //         args: [_allTokensRaw[i].status === 'success' ? _allTokensRaw[i].result : Config.CURVE]
-    //       })
-    //       contracts.push({
-    //         address: Config.CURVE,
-    //         abi: curveABI,
-    //         functionName: "priceInUSD",
-    //         args: [_allTokensRaw[i].status === 'success' ? _allTokensRaw[i].result : Config.CURVE]
-    //       })
-    //       contracts.push({
-    //         address: Config.CURVE,
-    //         abi: curveABI,
-    //         functionName: "hardcapPriceInUSD",
-    //         args: [_allTokensRaw[i].status === 'success' ? _allTokensRaw[i].result : Config.CURVE]
-    //       })
-    //       contracts.push({
-    //         address: Config.CURVE,
-    //         abi: curveABI,
-    //         functionName: "kingcapPriceInUSD",
-    //         args: [_allTokensRaw[i].status === 'success' ? _allTokensRaw[i].result : Config.CURVE]
-    //       })
-    //     }
-    //     const _allCurvesRaw = await multicall(Config.config, { contracts })
-    //     const _allCurves = []
-    //     for (let i = 0; i < _length; i++) {
-    //       const address = Config.CURVE
-    //       const supply = _allCurvesRaw[4 * i].status === "success" ? Number(formatUnits(_allCurvesRaw[4 * i].result[0], 18)) : 0
-    //       const funds = _allCurvesRaw[4 * i].status === "success" ? Number(formatUnits(_allCurvesRaw[4 * i].result[1], 18)) : 0
-    //       const status = _allCurvesRaw[4 * i].status === "success" ? Number(_allCurvesRaw[4 * i].result[2]) : 0
-    //       const king = _allCurvesRaw[4 * i].status === "success" ? Number(formatUnits(_allCurvesRaw[4 * i].result[3], 18)) : 0
-    //       const creator = _allCurvesRaw[4 * i].status === "success" ? _allCurvesRaw[4 * i].result[4] : ''
-    //       const id = _allCurvesRaw[4 * i].status === "success" ? Number(_allCurvesRaw[4 * i].result[5]) : 0
-    //       const token = _allTokensRaw[i].status === 'success' ? _allTokensRaw[i].result : ''
-    //       const totalSupply = _allCurvesRaw[4 * i].status === "success" ? Number(formatUnits(_allCurvesRaw[4 * i].result[7], 18)) : 0
-    //       const createdAt = _allCurvesRaw[4 * i].status === "success" ? Number(_allCurvesRaw[4 * i].result[8]) : 0
-    //       const name = _allCurvesRaw[4 * i].status === "success" ? _allCurvesRaw[4 * i].result[9] : ''
-    //       const symbol = _allCurvesRaw[4 * i].status === "success" ? _allCurvesRaw[4 * i].result[10] : ''
-    //       const logo = _allCurvesRaw[4 * i].status === "success" ? _allCurvesRaw[4 * i].result[11] : ''
-    //       const description = _allCurvesRaw[4 * i].status === "success" ? _allCurvesRaw[4 * i].result[12] : ''
-    //       const twitter = _allCurvesRaw[4 * i].status === "success" ? _allCurvesRaw[4 * i].result[13] : ''
-    //       const telegram = _allCurvesRaw[4 * i].status === "success" ? _allCurvesRaw[4 * i].result[14] : ''
-    //       const website = _allCurvesRaw[4 * i].status === "success" ? _allCurvesRaw[4 * i].result[15] : ''
-    //       const actionAt = _allCurvesRaw[4 * i].status === "success" ? Number(_allCurvesRaw[4 * i].result[16]) : 0
-    //       const priceInUSD = _allCurvesRaw[4 * i + 1].status === "success" ? Number(formatUnits(_allCurvesRaw[4 * i + 1].result, 12)) : 0
-    //       const mc = _allCurvesRaw[4 * i + 1].status === "success" ? Number(formatUnits(_allCurvesRaw[4 * i + 1].result, 3)) : 0
-    //       const hardcapMc = _allCurvesRaw[4 * i + 2].status === "success" ? Number(formatUnits(_allCurvesRaw[4 * i + 2].result, 3)) : 0
-    //       const kingcapMc = _allCurvesRaw[4 * i + 3].status === "success" ? Number(formatUnits(_allCurvesRaw[4 * i + 3].result, 3)) : 0
-    //       const curveItem = {
-    //         address,
-    //         supply,
-    //         funds,
-    //         status,
-    //         king,
-    //         creator,
-    //         id,
-    //         token,
-    //         totalSupply,
-    //         createdAt,
-    //         name,
-    //         symbol,
-    //         logo,
-    //         description,
-    //         twitter,
-    //         telegram,
-    //         website,
-    //         actionAt,
-    //         priceInUSD,
-    //         mc,
-    //         hardcapMc,
-    //         kingcapMc
-    //       }
-    //       if (_currentKing?.token?.toLowerCase() === curveItem.token.toLowerCase()) {
-    //         // console.log('_kingCurve: ', curveItem)
-    //         setKingCurve(curveItem)
-    //       }
-    //       _allCurves.push(curveItem)
-    //     }
-    //     // console.log('_allCurves: ', _allCurves)
-    //     setAllCurves(_allCurves)
-    //   } catch (err) {
-    //     console.log('useCurveStatus err', err)
-    //   }
-    // }
-    //fetchAllCurves()
+  // const fetchAllCurves = async () => {
+  //   try {
+  //     const _apolloData = await getApolloData();
+  //     const _currentKing = _apolloData?.currentKingOfTheHills?.length > 0 ? _apolloData?.currentKingOfTheHills[0] : {};
+  //     let contracts = []
+  //     contracts.push({
+  //       address: Config.CURVE,
+  //       abi: curveABI,
+  //       functionName: "allTokensLength",
+  //       args: []
+  //     })
+  //     const _lengthRaw = await multicall(Config.config, { contracts })
+  //     const _length = _lengthRaw[0].status === "success" ? parseInt(_lengthRaw[0].result) : 0
+  //     contracts = []
+  //     for (let i = 0; i < _length; i++) {
+  //       contracts.push({
+  //         address: Config.CURVE,
+  //         abi: curveABI,
+  //         functionName: "allTokens",
+  //         args: [i]
+  //       })
+  //     }
+  //     const _allTokensRaw = await multicall(Config.config, { contracts })
+  //     contracts = []
+  //     for (let i = 0; i < _length; i++) {
+  //       contracts.push({
+  //         address: Config.CURVE,
+  //         abi: curveABI,
+  //         functionName: "curveInfo",
+  //         args: [_allTokensRaw[i].status === 'success' ? _allTokensRaw[i].result : Config.CURVE]
+  //       })
+  //       contracts.push({
+  //         address: Config.CURVE,
+  //         abi: curveABI,
+  //         functionName: "priceInUSD",
+  //         args: [_allTokensRaw[i].status === 'success' ? _allTokensRaw[i].result : Config.CURVE]
+  //       })
+  //       contracts.push({
+  //         address: Config.CURVE,
+  //         abi: curveABI,
+  //         functionName: "hardcapPriceInUSD",
+  //         args: [_allTokensRaw[i].status === 'success' ? _allTokensRaw[i].result : Config.CURVE]
+  //       })
+  //       contracts.push({
+  //         address: Config.CURVE,
+  //         abi: curveABI,
+  //         functionName: "kingcapPriceInUSD",
+  //         args: [_allTokensRaw[i].status === 'success' ? _allTokensRaw[i].result : Config.CURVE]
+  //       })
+  //     }
+  //     const _allCurvesRaw = await multicall(Config.config, { contracts })
+  //     const _allCurves = []
+  //     for (let i = 0; i < _length; i++) {
+  //       const address = Config.CURVE
+  //       const supply = _allCurvesRaw[4 * i].status === "success" ? Number(formatUnits(_allCurvesRaw[4 * i].result[0], 18)) : 0
+  //       const funds = _allCurvesRaw[4 * i].status === "success" ? Number(formatUnits(_allCurvesRaw[4 * i].result[1], 18)) : 0
+  //       const status = _allCurvesRaw[4 * i].status === "success" ? Number(_allCurvesRaw[4 * i].result[2]) : 0
+  //       const king = _allCurvesRaw[4 * i].status === "success" ? Number(formatUnits(_allCurvesRaw[4 * i].result[3], 18)) : 0
+  //       const creator = _allCurvesRaw[4 * i].status === "success" ? _allCurvesRaw[4 * i].result[4] : ''
+  //       const id = _allCurvesRaw[4 * i].status === "success" ? Number(_allCurvesRaw[4 * i].result[5]) : 0
+  //       const token = _allTokensRaw[i].status === 'success' ? _allTokensRaw[i].result : ''
+  //       const totalSupply = _allCurvesRaw[4 * i].status === "success" ? Number(formatUnits(_allCurvesRaw[4 * i].result[7], 18)) : 0
+  //       const createdAt = _allCurvesRaw[4 * i].status === "success" ? Number(_allCurvesRaw[4 * i].result[8]) : 0
+  //       const name = _allCurvesRaw[4 * i].status === "success" ? _allCurvesRaw[4 * i].result[9] : ''
+  //       const symbol = _allCurvesRaw[4 * i].status === "success" ? _allCurvesRaw[4 * i].result[10] : ''
+  //       const logo = _allCurvesRaw[4 * i].status === "success" ? _allCurvesRaw[4 * i].result[11] : ''
+  //       const description = _allCurvesRaw[4 * i].status === "success" ? _allCurvesRaw[4 * i].result[12] : ''
+  //       const twitter = _allCurvesRaw[4 * i].status === "success" ? _allCurvesRaw[4 * i].result[13] : ''
+  //       const telegram = _allCurvesRaw[4 * i].status === "success" ? _allCurvesRaw[4 * i].result[14] : ''
+  //       const website = _allCurvesRaw[4 * i].status === "success" ? _allCurvesRaw[4 * i].result[15] : ''
+  //       const actionAt = _allCurvesRaw[4 * i].status === "success" ? Number(_allCurvesRaw[4 * i].result[16]) : 0
+  //       const priceInUSD = _allCurvesRaw[4 * i + 1].status === "success" ? Number(formatUnits(_allCurvesRaw[4 * i + 1].result, 12)) : 0
+  //       const mc = _allCurvesRaw[4 * i + 1].status === "success" ? Number(formatUnits(_allCurvesRaw[4 * i + 1].result, 3)) : 0
+  //       const hardcapMc = _allCurvesRaw[4 * i + 2].status === "success" ? Number(formatUnits(_allCurvesRaw[4 * i + 2].result, 3)) : 0
+  //       const kingcapMc = _allCurvesRaw[4 * i + 3].status === "success" ? Number(formatUnits(_allCurvesRaw[4 * i + 3].result, 3)) : 0
+  //       const curveItem = {
+  //         address,
+  //         supply,
+  //         funds,
+  //         status,
+  //         king,
+  //         creator,
+  //         id,
+  //         token,
+  //         totalSupply,
+  //         createdAt,
+  //         name,
+  //         symbol,
+  //         logo,
+  //         description,
+  //         twitter,
+  //         telegram,
+  //         website,
+  //         actionAt,
+  //         priceInUSD,
+  //         mc,
+  //         hardcapMc,
+  //         kingcapMc
+  //       }
+  //       if (_currentKing?.token?.toLowerCase() === curveItem.token.toLowerCase()) {
+  //         // console.log('_kingCurve: ', curveItem)
+  //         setKingCurve(curveItem)
+  //       }
+  //       _allCurves.push(curveItem)
+  //     }
+  //     // console.log('_allCurves: ', _allCurves)
+  //     setAllCurves(_allCurves)
+  //   } catch (err) {
+  //     console.log('useCurveStatus err', err)
+  //   }
+  // }
+  //fetchAllCurves()
   //}, [refetch, refresh])
 
   const [keyStr, setKeyStr] = useState("")
@@ -285,42 +286,28 @@ export function useCurveStatus(refresh = true, tokenAddr = '0x000000000000000000
 
   useEffect(() => {
     const fetchAllTokens = async () => {
-
       try {
-        let contracts = [
-          {
-            address: Config.CURVE,
-            abi: curveABI,
-            functionName: "allTokensLength",
-            args: [],
-          },
-        ];
+        const provider = new ethers.BrowserProvider(window.ethereum); // or use a signer if needed
+        const signer = await provider.getSigner();
+        const curveContract = new ethers.Contract(Config.CURVE, curveABI, signer);
 
         // Get the total number of tokens
-        const _lengthRaw = await multicall(Config.config, { contracts });
-        const _length =
-          _lengthRaw[0].status === "success" ? parseInt(_lengthRaw[0].result) : 0;
+        const length = await curveContract.allTokensLength();
+        const _length = Number(length);
 
         if (_length === 0) return;
 
-        // Prepare multicall to fetch all tokens
-        contracts = [];
+        const _allTokens = [];
+
         for (let i = 0; i < _length; i++) {
-          contracts.push({
-            address: Config.CURVE,
-            abi: curveABI,
-            functionName: "allTokens",
-            args: [i],
-          });
+          try {
+            const token = await curveContract.allTokens(i);
+            _allTokens.push(token);
+          } catch (err) {
+            console.warn(`Failed to fetch token at index ${i}:`, err);
+          }
         }
 
-        const _allTokensRaw = await multicall(Config.config, { contracts });
-        // Extract valid tokens
-        const _allTokens = _allTokensRaw
-          .map((token, index) =>
-            token.status === "success" ? token.result : null
-          )
-          .filter((token) => token !== null); // Filter out failed calls          
         setAllTokens(_allTokens);
       } catch (error) {
         console.error("Error fetching all tokens:", error);
@@ -332,63 +319,47 @@ export function useCurveStatus(refresh = true, tokenAddr = '0x000000000000000000
 
   useEffect(() => {
     const getTokenInfo = async (_tokenAddr) => {
+      const defaultResponse = {
+        address: "0x000000000000000000000000000000000000000000",
+        creator: "",
+        name: "",
+        logo: "",
+        totalSupply: 0,
+        funds: 0,
+        priceInUSD: 0,
+        marketCap: 0,
+        volume: 0,
+        mc: 0,
+        hardcapMc: 0,
+        kingcapMc: 0,
+      };
+
       if (!_tokenAddr || !isValidAddress(_tokenAddr)) {
-        return {
-          address: "0x000000000000000000000000000000000000000000",
-          address: "0x000000000000000000000000000000000000000000",
-          name: "",
-          logo: "",
-          totalSupply: 0,
-          funds: 0,
-          priceInUSD: 0,
-          marketCap: 0,
-          volume: 0,
-          mc: 0,
-          hardcapMc: 0,
-          kingcapMc: 0,
-        };
+        return defaultResponse;
       }
+
       try {
-        const addr_abi = {
-          address: Config.CURVE,
-          abi: curveABI,
-        }
-        const _curveRaw = await multicall(Config.config, {
-          contracts: [
-            {
-              ...addr_abi,
-              functionName: "curveInfo",
-              args: [_tokenAddr],
-            },
-            {
-              ...addr_abi,
-              functionName: "priceInUSD",
-              args: [_tokenAddr],
-            },
-            {
-              ...addr_abi,
-              functionName: "hardcapPriceInUSD",
-              args: [_tokenAddr],
-            },
-            {
-              ...addr_abi,
-              functionName: "kingcapPriceInUSD",
-              args: [_tokenAddr],
-            },
-          ]
-        });
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const curveContract = new ethers.Contract(Config.CURVE, curveABI, signer);
+
+        // Perform contract calls
+        const curveInfo = await curveContract.curveInfo(_tokenAddr);
+        const priceInUSDRaw = await curveContract.priceInUSD(_tokenAddr);
+        const hardcapMcRaw = await curveContract.hardcapPriceInUSD(_tokenAddr);
+        const kingcapMcRaw = await curveContract.kingcapPriceInUSD(_tokenAddr);
 
         const address = _tokenAddr;
-        const creator = _curveRaw[0].status === "success" ? _curveRaw[0].result[4] : "";
-        const name = _curveRaw[0].status === "success" ? _curveRaw[0].result[9] : "";
-        const logo = _curveRaw[0].status === "success" ? _curveRaw[0].result[11] : "";
-        const totalSupply = _curveRaw[0].status === "success" ? Number(formatUnits(_curveRaw[0].result[7], 18)) : "0";
-        const funds = _curveRaw[0].status === "success" ? Number(formatUnits(_curveRaw[0].result[1], 18)) : 0;
-        const priceInUSD = _curveRaw[1].status === "success" ? Number(formatUnits(_curveRaw[1].result, 12)) : 0;
-        const mc = _curveRaw[2].status === "success" ? Number(formatUnits(_curveRaw[2].result, 3)) : 0;
-        const hardcapMc = _curveRaw[3].status === "success" ? Number(formatUnits(_curveRaw[3].result, 3)) : 0;
-        const kingcapMc = _curveRaw[3].status === "success" ? Number(formatUnits(_curveRaw[3].result, 3)) : 0;
-        const marketCap = Number(totalSupply) * priceInUSD;
+        const creator = curveInfo[4];
+        const name = curveInfo[9];
+        const logo = curveInfo[11];
+        const totalSupply = Number(formatUnits(curveInfo[7], 18));
+        const funds = Number(formatUnits(curveInfo[1], 18));
+        const priceInUSD = Number(formatUnits(priceInUSDRaw, 12));
+        const mc = Number(formatUnits(hardcapMcRaw, 3));
+        const hardcapMc = Number(formatUnits(hardcapMcRaw, 3));
+        const kingcapMc = Number(formatUnits(kingcapMcRaw, 3));
+        const marketCap = totalSupply * priceInUSD;
         const volume = 0;
 
         return {
@@ -406,23 +377,10 @@ export function useCurveStatus(refresh = true, tokenAddr = '0x000000000000000000
           kingcapMc,
         };
       } catch (err) {
-        console.log(err);
-        return {
-          address: "0x000000000000000000000000000000000000000000",
-          address: "0x000000000000000000000000000000000000000000",
-          name: "",
-          logo: "",
-          totalSupply: 0,
-          funds: 0,
-          priceInUSD: 0,
-          marketCap: 0,
-          volume: 0,
-          mc: 0,
-          hardcapMc: 0,
-          kingcapMc: 0,
-        };
+        console.error("Error fetching token info:", err);
+        return defaultResponse;
       }
-    }
+    };
 
     const _fetchAllTokenInfo = async () => {
       if (!allTokens || allTokens.length === 0)
@@ -448,7 +406,7 @@ export function useCurveStatus(refresh = true, tokenAddr = '0x000000000000000000
       await _fetchAllTokenInfo();
     }
 
-    fetchAllTokenInfo();    
+    fetchAllTokenInfo();
   }, [allTokens]);
 
   useEffect(() => {
