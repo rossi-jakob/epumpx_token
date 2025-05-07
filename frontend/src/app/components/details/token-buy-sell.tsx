@@ -444,7 +444,7 @@ function TokenBuySell({
 
         console.log("sell transaction=============================")
         // Optional: estimate gas
-        const gasEstimate = await curveContract.estimateGas.sell(...sellArgs);
+        const gasEstimate = 1;//await curveContract.estimateGas.sell(...sellArgs);
 
         // Send tx
         tx = await curveContract.sell(...sellArgs, {
