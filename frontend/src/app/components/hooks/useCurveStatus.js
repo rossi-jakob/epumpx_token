@@ -287,7 +287,7 @@ export function useCurveStatus(refresh = true, tokenAddr = '0x000000000000000000
   useEffect(() => {
     const fetchAllTokens = async () => {
       try {
-        const provider = new ethers.BrowserProvider(window.ethereum); // or use a signer if needed
+        const provider = new ethers.JsonRpcProvider(Config.RPC_URL); // or use a signer if needed
         const signer = await provider.getSigner();
         const curveContract = new ethers.Contract(Config.CURVE, curveABI, signer);
 
@@ -339,7 +339,7 @@ export function useCurveStatus(refresh = true, tokenAddr = '0x000000000000000000
       }
 
       try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
+        const provider = new ethers.JsonRpcProvider(Config.RPC_URL);
         const signer = await provider.getSigner();
         const curveContract = new ethers.Contract(Config.CURVE, curveABI, signer);
 
