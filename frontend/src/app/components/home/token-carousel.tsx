@@ -21,59 +21,44 @@ export function TokenCarousel({
   direction = "ltr",
 }: TokenCarouselProps) {
   const controls = useAnimation();
-  const currentX = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const isMounted = useRef(true);
+  const scrollWidthRef = useRef(0);
+  const currentX = useRef(0);
   const router = useRouter();
   const { t } = useTranslation();
 
-  const pxPerSecond = 100;
+  const speed = 100; // px per second
 
-  const startScrolling = (containerWidth: number, fromX: number) => {
-    const distance =
-      direction === "ltr" ? fromX - -containerWidth : fromX - 0;
-
-    const duration = Math.abs(distance) / pxPerSecond;
+  const startAnimation = () => {
+    const containerWidth = scrollWidthRef.current;
+    const duration = containerWidth / speed;
 
     controls.start({
       x: direction === "ltr" ? -containerWidth : 0,
       transition: {
+        repeat: Infinity,
+        repeatType: "loop",
         ease: "linear",
         duration,
-        onUpdate: (latest: any) => {
-          currentX.current = latest;
-
-          if (
-            (direction === "ltr" && latest <= -containerWidth) ||
-            (direction === "rtl" && latest >= 0)
-          ) {
-            const resetX = direction === "ltr" ? 0 : -containerWidth;
-
-            // Prevent running logic after unmount
-            if (!isMounted.current) return;
-
-            controls.set({ x: resetX }); // Removed `.then(...)`
-            currentX.current = resetX;
-            startScrolling(containerWidth, resetX); // Safely restart the scroll loop
-          }
-        },
       },
     });
   };
 
   useEffect(() => {
-    isMounted.current = true;
-    const containerWidth = containerRef.current?.scrollWidth! / 2;
-    const initialX = direction === "ltr" ? 0 : -containerWidth;
-    controls.set({ x: initialX });
-    currentX.current = initialX;
-    startScrolling(containerWidth, initialX);
+    const container = containerRef.current;
+    if (!container) return;
 
-    return () => {
-      isMounted.current = false;
-      controls.stop(); // Cleanup on unmount
-    };
-  }, [controls, direction, tokens]);
+    // Wait for DOM to paint
+    requestAnimationFrame(() => {
+      scrollWidthRef.current = container.scrollWidth / 2;
+      const initialX = direction === "ltr" ? 0 : -scrollWidthRef.current;
+      currentX.current = initialX;
+      controls.set({ x: initialX });
+      startAnimation();
+    });
+
+    return () => controls.stop();
+  }, [tokens, direction]);
 
   return (
     <div className="w-full overflow-hidden" ref={containerRef}>
@@ -81,13 +66,28 @@ export function TokenCarousel({
         animate={controls}
         className="flex gap-4"
         style={{ width: "max-content" }}
-        onMouseEnter={() => {
-          if (isMounted.current) controls.stop();
-        }}
+        onMouseEnter={() => controls.stop()}
         onMouseLeave={() => {
-          const containerWidth = containerRef.current?.scrollWidth! / 2;
-          if (isMounted.current) {
-            startScrolling(containerWidth, currentX.current);
+          const fromX = currentX.current;
+          const containerWidth = scrollWidthRef.current;
+          const duration = Math.abs(
+            direction === "ltr" ? fromX + containerWidth : fromX
+          ) / speed;
+
+          controls.start({
+            x: direction === "ltr" ? -containerWidth : 0,
+            from: fromX,
+            transition: {
+              repeat: Infinity,
+              repeatType: "loop",
+              ease: "linear",
+              duration,
+            },
+          });
+        }}
+        onUpdate={(latest) => {
+          if (typeof latest.x === "number") {
+            currentX.current = latest.x;
           }
         }}
       >
@@ -113,8 +113,8 @@ export function TokenCarousel({
                 <div className="text-white text-md font-bold">
                   {token.name.length > 5
                     ? token.name.slice(0, 2) +
-                    "..." +
-                    token.name.slice(-2)
+                      "..." +
+                      token.name.slice(-2)
                     : token.name}
                   /EPIX
                 </div>
@@ -127,4 +127,3 @@ export function TokenCarousel({
   );
 }
 
-export default TokenCarousel;
