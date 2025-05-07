@@ -183,7 +183,7 @@ export const CreateForms = () => {
 
         console.log("tx======", tx)
         // 4. Wait for the transaction receipt
-        //const txData = await tx.wait();
+        const txData = await tx.wait();
 
         // toast.promise(
         //   tx,
