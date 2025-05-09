@@ -43,7 +43,7 @@ async function main() {
     let virtualX;
     let virtualY;
 
-    virtualX = '1666666666666666667'
+    virtualX = '2833333333333333333333'
     virtualY = '1057466666666666666666666667'
 
     const evmFunCurve = await hre.ethers.deployContract("EvmFunCurve");

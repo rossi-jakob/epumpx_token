@@ -1,26 +1,39 @@
 'use client'
 
-import {useState, useEffect} from "react"
-import { LuCopy } from "react-icons/lu";
+import { useState, useEffect } from "react"
+import { LuCopy, LuCheck } from "react-icons/lu";
 import { convertNumberFormat } from '../../utils/util'
 import { useTranslation } from "react-i18next";
 
-const TokenDetails = (props : any)=>{
+const TokenDetails = (props: any) => {
   const { tokenAddr, tradeData, curveInfo } = props;
   const [virtualLiquidity, setVLiquidity] = useState(0)
-  const {t} = useTranslation()
+  const { t } = useTranslation()
 
-  useEffect(()=>{
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(tokenAddr);
+      setCopied(true);
+      // auto-reset icon after 2 s
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Clipboard write failed", err);
+    }
+  }
+
+  useEffect(() => {
     if (curveInfo)
       setVLiquidity(Number(Number(curveInfo?.epixPrice) * (12.53 + curveInfo?.funds * 2)))
   }, [curveInfo])
-  
+
   return (
     <div className="p-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Token Info Column */}
         <div className="flex items-center gap-3">
-          <img src={curveInfo?.logo==""? "/nft.svg" : curveInfo?.logo} alt="Token" className="w-12 h-12 rounded-full" />
+          <img src={curveInfo?.logo == "" ? "/nft.svg" : curveInfo?.logo} alt="Token" className="w-12 h-12 rounded-full" />
           <div>
             <h2 className="text-lg font-bold text-white">{curveInfo?.symbol} / EPIX</h2>
             <div className="text-sm text-gray-400">
@@ -30,10 +43,16 @@ const TokenDetails = (props : any)=>{
               <div className="flex items-center gap-1">
                 {/* <span>CA {tokenAddr? spliceAdress(tokenAddr) : "0x000...0000"}</span> */}
                 <span>CA {tokenAddr.slice(0, 6) + "..." + tokenAddr.slice(-4)}</span>
-                <LuCopy
-                  className="text-gray-400 hover:text-white cursor-pointer"
-                  size={12}
-                />
+                {/* copy (or “copied!”) icon */}
+                {copied ? (
+                  <LuCheck className="text-green-400" size={12} />
+                ) : (
+                  <LuCopy
+                    onClick={handleCopy}
+                    className="text-gray-400 hover:text-white cursor-pointer"
+                    size={12}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -51,7 +70,7 @@ const TokenDetails = (props : any)=>{
             {t("volume")}: <span className="text-white">${curveInfo?.funds}</span>
           </div>
           <div className="text-gray-400">
-            {t("rise")}: <span className="text-green-400">+{(Number(curveInfo?.priceInUSD)/Number(curveInfo?.priceInUSDInital) * 100 - 100).toFixed(2)} %</span>
+            {t("rise")}: <span className="text-green-400">+{(Number(curveInfo?.priceInUSD) / Number(curveInfo?.priceInUSDInital) * 100 - 100).toFixed(2)} %</span>
           </div>
         </div>
 
