@@ -6,15 +6,10 @@ import TradingView from "@/app/sections/TradingView";
 import {ethers} from "ethers"
 
 import { useAccount } from "wagmi";
-import {
-  multicall,
-} from "@wagmi/core";
-
 import { formatUnits } from "viem";
 import { isValidAddress } from "@/app/utils/util";
 
 import curveABI from "@/abi/curve.json";
-import multicallABI from "@/abi/multicall.json";
 import erc20ABI from "@/abi/erc20.json";
 import Config from "@/app/config/config";
 import Spinner from '@/components/ui/spinner';
@@ -58,11 +53,11 @@ export default function TokenPage() {
     // eslint-disable-next-line
   }, [refetch]);
 
-  const provider = new ethers.BrowserProvider(window.ethereum);
+  const provider = new ethers.JsonRpcProvider(Config.RPC_URL);
 
   const getCurveInfo = useCallback(async (_tokenAddr: any) => {
-    const signer = await provider.getSigner();
-    const curveContract = new ethers.Contract(Config.CURVE, curveABI, signer);
+    //const signer = await provider.getSigner();
+    const curveContract = new ethers.Contract(Config.CURVE, curveABI, provider);
 
     if (!_tokenAddr || !isValidAddress(_tokenAddr)) {
       return {
@@ -133,7 +128,7 @@ export default function TokenPage() {
       const kingcapMc = Number(ethers.formatUnits(kingcapPriceInUSDRaw, 3));
       const priceInUSDInital = Number(ethers.formatUnits(priceInUSDFromFundsRaw, 12));
       const epixPrice = Number(ethers.formatUnits(epixPriceRaw, 8));
-      // console.log('_curveInfo: ', supply, funds, status, king, creator, id, token, totalSupply, createdAt, name, symbol, logo, priceInUSD, mc)
+      console.log('_curveInfo: ', supply, funds, status, king, creator, id, token, totalSupply, createdAt, name, symbol, logo, priceInUSD, mc)
       return {
         supply,
         funds,

@@ -11,12 +11,11 @@ import { isValidAddress } from "../../utils/util";
 import { ethers } from "ethers"
 
 export function useCurveStatus(refresh = true, tokenAddr = '0x0000000000000000000000000000000000000000') {
-  const chainId = useChainId()
 
   const [refetchApollo, setRefetchApollo] = useState(undefined)
   const [refetch, setRefetch] = useState(false)
-  const [allCurves, setAllCurves] = useState([])
-  const [kingCurve, setKingCurve] = useState({})
+  // const [allCurves, setAllCurves] = useState([])
+  // const [kingCurve, setKingCurve] = useState({})
 
   //useEffect(() => {
   // const fetchAllCurves = async () => {
@@ -288,8 +287,7 @@ export function useCurveStatus(refresh = true, tokenAddr = '0x000000000000000000
     const fetchAllTokens = async () => {
       try {
         const provider = new ethers.JsonRpcProvider(Config.RPC_URL); // or use a signer if needed
-        const signer = await provider.getSigner();
-        const curveContract = new ethers.Contract(Config.CURVE, curveABI, signer);
+        const curveContract = new ethers.Contract(Config.CURVE, curveABI, provider);
 
         // Get the total number of tokens
         const length = await curveContract.allTokensLength();
@@ -323,6 +321,7 @@ export function useCurveStatus(refresh = true, tokenAddr = '0x000000000000000000
         address: "0x000000000000000000000000000000000000000000",
         creator: "",
         name: "",
+        symbol: "",
         logo: "",
         totalSupply: 0,
         funds: 0,
@@ -352,6 +351,7 @@ export function useCurveStatus(refresh = true, tokenAddr = '0x000000000000000000
         const address = _tokenAddr;
         const creator = curveInfo[4];
         const name = curveInfo[9];
+        const symbol = curveInfo[10];
         const logo = curveInfo[11];
         const totalSupply = Number(formatUnits(curveInfo[7], 18));
         const funds = Number(formatUnits(curveInfo[1], 18));
@@ -366,6 +366,7 @@ export function useCurveStatus(refresh = true, tokenAddr = '0x000000000000000000
           address,
           creator,
           name,
+          symbol: symbol,
           logo,
           totalSupply,
           funds,
@@ -475,9 +476,9 @@ export function useCurveStatus(refresh = true, tokenAddr = '0x000000000000000000
     // handleSetInclud,
     tradeInfo,
     otherInfo,
-    allCurves,
+    // allCurves,
     // setAllCurves,
-    kingCurve,
+    // kingCurve,
     tradeData,
     holderData
   }
