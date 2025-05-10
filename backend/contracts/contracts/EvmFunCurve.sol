@@ -438,7 +438,7 @@ contract EvmFunCurve is
     }
 
     function getLatestETHPrice() public view returns (uint256) {
-        return 300000;//uint256(priceFeed.latestAnswer());
+        return 100000000;//uint256(priceFeed.latestAnswer());
     }
 
     // PriceInETH as PRICE_DENOM

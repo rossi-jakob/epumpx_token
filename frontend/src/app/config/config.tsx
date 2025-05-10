@@ -1,8 +1,6 @@
 import { mainnet, bsc, bscTestnet } from "wagmi/chains"
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { http,createConfig } from 'wagmi'
 import epixTestnet from './epixChainDefine'
-import { getOrMapViemChain } from '@dynamic-labs/ethereum-core';
 
 //token = PAWRixwhWhWAYRP0zjDKCu69
 const projectId = "49833b3043fb1dc08bcdccf7ab548c31";
@@ -27,8 +25,8 @@ chain = {
   contracts: chain.contracts,
 }
 
-//logic contract 0xC4845d8d63Be6b9fe1AEdF060b8E5aC58fcec2A2     "0xC76EbF4c4461De3f88DE62286Eb4400C9B89E769","0x6B84106e33713730B90A7B375572A36985574907" : bsc  "0xf969a0D893F17D8f0E07871f0353054fc84E9077" : epix
-const curve = MODE ? "0x9A132b310eED1D8A15f92491A3026d0cDe773D91" : "0xf969a0D893F17D8f0E07871f0353054fc84E9077" // TODO //"0xa76FA4197E7245E8E521006672d6B781BE1AbA08"
+//logic contract 0xC4845d8d63Be6b9fe1AEdF060b8E5aC58fcec2A2     "0xC76EbF4c4461De3f88DE62286Eb4400C9B89E769","0x6B84106e33713730B90A7B375572A36985574907" : bsc  "0xC993865C05B1c6b3327b9C50d256A0060f1154d1" : epix
+const curve = MODE ? "0x9A132b310eED1D8A15f92491A3026d0cDe773D91" : "0xC993865C05B1c6b3327b9C50d256A0060f1154d1" // TODO //"0xa76FA4197E7245E8E521006672d6B781BE1AbA08"
 
 // const config = getDefaultConfig?.({
 //   appName: 'chain', // TODO

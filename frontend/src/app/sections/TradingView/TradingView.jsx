@@ -4,20 +4,11 @@ import { toast } from "react-toastify";
 import { BsGlobe2 } from "react-icons/bs";
 import { FaTelegramPlane } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
-import { encodeFunctionData, parseUnits, formatUnits } from "viem";
 import { useAccount, useConfig } from "wagmi";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { useTranslation } from "react-i18next";
 import { ethers } from "ethers";
-
-import {
-  multicall,
-  estimateGas,
-  writeContract,
-  waitForTransactionReceipt,
-} from "@wagmi/core";
 
 import EasingY from "@/app/components/animations/EasingY";
 import GradientEllipse from "@/app/components/gradient-ellipsis";
@@ -28,15 +19,12 @@ import { TokenSupply } from "@/app/components/details/token-supply";
 
 import { toastConfig, isValidAddress } from "../../utils/util";
 
-import baseLogo from "../../../../public/logo.png";
 import curveABI from "@/abi/curve.json";
 import erc20ABI from "@/abi/erc20.json";
 import Config from "@/app/config/config";
 
 import Chart from "@/components/tradingview";
-import EventAlert from "@/app/components/eventAlert/EventAlert";
 import Slippage from "@/app/components/slippage/Slippage";
-import Script from "next/script";
 
 import { useCurveStatus } from "@/app/components/hooks/useCurveStatus";
 
@@ -50,8 +38,6 @@ function TradingView({
   // otherInfo
 }) {
   const account = useAccount();
-  const config = useConfig();
-  const router = useRouter();
   const { t } = useTranslation();
 
   const { tradeData, holderData } = useCurveStatus(refresh, tokenAddr);
@@ -68,9 +54,6 @@ function TradingView({
   const [pending, setPending] = useState(false);
   const [btnMsg, setBtnMsg] = useState("Swap");
   const [errMsg, setErrMsg] = useState("");
-  const [contract, setContract] = useState();
-
-  const [mevProtect, setMEVProtect] = useState(false);
 
   const container = useRef();
 
@@ -82,7 +65,7 @@ function TradingView({
       setErrMsg("Pending... Please wait a second.");
       return;
     }
-  }, [pending, contract]);
+  }, [pending]);
 
   const getAmountOutEPIX = async (inputTokenAmount) => {
     if (inputTokenAmount === 0 || inputTokenAmount > tokenInfo.balance) return;
@@ -818,7 +801,7 @@ function TradingView({
                 } gap-2 mb-6`}
               >
                 {!swapToggle
-                  ? ["0.1 EPIX", "0.5 EPIX", "1 EPIX"].map((amount) => (
+                  ? ["10 EPIX", "50 EPIX", "100 EPIX"].map((amount) => (
                       <Button
                         key={amount}
                         variant="ghost"
@@ -866,7 +849,7 @@ function TradingView({
                 </b>{" "}
                 {t("stillAvailable")}{" "}
                 <b className="text-md">{curveInfo?.funds} EPIX </b>(
-                <b className="text-md">{t("raisedAmount")}: 18.8 EPIX</b>)
+                <b className="text-md">{t("raisedAmount")}: 8500 EPIX</b>)
                 {t("intheBondingCurve")}.{t("whenMCReached")}{" "}
                 <b className="text-md">${Number(curveInfo.mc).toFixed(2)}</b>{" "}
                 {t("allLiquidity")}

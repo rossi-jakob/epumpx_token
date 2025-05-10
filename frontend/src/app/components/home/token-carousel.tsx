@@ -1,12 +1,13 @@
 "use client";
 import { motion, useAnimation } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 
 interface Token {
   address: string;
   name: string;
+  symbol: string;
   logo: string;
   funds?: number;
 }
@@ -27,6 +28,7 @@ export function TokenCarousel({
   const scrollWidthRef = useRef(0);
   const router = useRouter();
   const { t } = useTranslation();
+  const [restarted, setRestarted] = useState(false)
 
   const speed = 100; // pixels per second
 
@@ -34,10 +36,14 @@ export function TokenCarousel({
 
   const startLoop = () => {
     const width = scrollWidthRef.current;
+    const initialX = direction === "ltr" ? 0 : -width;
+    const targetX = direction === "ltr" ? -width : 0;
     const duration = calculateDuration(width);
-
+  
+    currentX.current = initialX;
+    controls.set({ x: initialX });
     controls.start({
-      x: direction === "ltr" ? -width : 0,
+      x: targetX,
       transition: {
         repeat: Infinity,
         repeatType: "loop",
@@ -74,15 +80,33 @@ export function TokenCarousel({
         onMouseEnter={() => controls.stop()}
         onMouseLeave={() => {
           const width = scrollWidthRef.current;
-          const fromX = currentX.current;
-          const remaining = direction === "ltr"
-            ? fromX + width
-            : Math.abs(fromX);
+          let fromX = currentX.current;
+        
+          const isAtLoopEnd = direction === "ltr"
+            ? fromX <= -width + 1 // Add a small tolerance
+            : fromX >= -1;
+        
+          if (isAtLoopEnd) {
+            // Loop finished → reset to start
+            fromX = direction === "ltr" ? 0 : -width;
+            controls.set({ x: fromX });
+            currentX.current = fromX;
+          }
+        
+          const targetX = direction === "ltr" ? -width : 0;
+          const remaining = Math.abs(targetX - fromX);
           const duration = remaining / speed;
-
+        
+          // If distance is too small, just restart full loop
+          if (remaining < 100) {
+            console.log("remain is less than 2")
+            startLoop(); // Call the proper startLoop method
+            return;
+          }
+        
+          controls.set({ x: fromX }); // Resume from current
           controls.start({
-            x: direction === "ltr" ? -width : 0,
-            from: fromX,
+            x: targetX,
             transition: {
               repeat: Infinity,
               repeatType: "loop",
@@ -100,7 +124,7 @@ export function TokenCarousel({
         {[...tokens, ...tokens].map((token, index) => (
           <div
             key={index}
-            className="flex-shrink-0 select-none mx-2 hover:cursor-pointer hover:outline hover:outline-2 hover:outline-[#8346FF] hover:rounded-full"
+            className="flex-shrink-0 select-none mx-2 hover:cursor-pointer hover:outline hover:outline-2 hover:outline-[#8346FF] hover:rounded-full m-2"
             onClick={() => router.push(`/token/${token.address}`)}
           >
             <div className="bg-[#191C2F] rounded-full p-2 flex items-center space-x-3 w-[240px]">
@@ -117,11 +141,11 @@ export function TokenCarousel({
                   <span className="text-green-400">{t("boughtOf")}</span>
                 </div>
                 <div className="text-white text-md font-bold">
-                  {token.name.length > 5
-                    ? token.name.slice(0, 2) +
+                  {token.symbol.length > 8
+                    ? token.symbol.slice(0, 2) +
                     "..." +
-                    token.name.slice(-2)
-                    : token.name}
+                    token.symbol.slice(-2)
+                    : token.symbol}
                   /EPIX
                 </div>
               </div>
