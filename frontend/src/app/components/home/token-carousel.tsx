@@ -28,7 +28,8 @@ export function TokenCarousel({
   const scrollWidthRef = useRef(0);
   const router = useRouter();
   const { t } = useTranslation();
-  const [restarted, setRestarted] = useState(false)
+
+  console.log("token carsoel===========", tokens);
 
   const speed = 100; // pixels per second
 

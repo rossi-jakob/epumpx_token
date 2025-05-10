@@ -141,7 +141,7 @@ contract EvmFunCurve is
         // TODO
         router = address(0x5A26DD8A6F0C7BfAE37010321E275F141F6de64e);
         factory = address(0xA94706dc18b0d3A9D9740559760321D72db124f3);
-        weth = address(0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd);
+        weth = address(0x3Ec93162b35d0704b2dE2C632D4A534F8E325d2A);
         priceFeed = IPriceFeed(0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526);
         hardcap = 3 ether; //8500 ether;
         kingcap = 6800 ether;
