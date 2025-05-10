@@ -22,11 +22,11 @@ const verify = async (address, parameter = []) => {
 async function main() {
   try {
     console.log('deploying...')
-    // const retVal = await hreconfig.hreInit(hre)
-    // if (!retVal) {
-    //   console.log('hardhat error!');
-    //   return false;
-    // }
+    const retVal = await hreconfig.hreInit(hre)
+    if (!retVal) {
+      console.log('hardhat error!');
+      return false;
+    }
     await hre.run('clean')
     await hre.run('compile')
 
@@ -43,7 +43,9 @@ async function main() {
     let virtualX;
     let virtualY;
 
-    virtualX = '2833333333333333333333'
+    //virtualX = '2833333333333333333333'
+    // virtualX = '1666666666666666667'
+    virtualX = '966666666666666667'
     virtualY = '1057466666666666666666666667'
 
     const evmFunCurve = await hre.ethers.deployContract("EvmFunCurve");
