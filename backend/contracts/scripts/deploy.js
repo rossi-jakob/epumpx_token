@@ -22,11 +22,11 @@ const verify = async (address, parameter = []) => {
 async function main() {
   try {
     console.log('deploying...')
-    // const retVal = await hreconfig.hreInit(hre)
-    // if (!retVal) {
-    //   console.log('hardhat error!');
-    //   return false;
-    // }
+    const retVal = await hreconfig.hreInit(hre)
+    if (!retVal) {
+      console.log('hardhat error!');
+      return false;
+    }
     await hre.run('clean')
     await hre.run('compile')
 

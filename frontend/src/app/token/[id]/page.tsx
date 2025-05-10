@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import TradingView from "@/app/sections/TradingView";
-import {ethers} from "ethers"
+import { ethers } from "ethers"
 
 import { useAccount } from "wagmi";
 import { formatUnits } from "viem";
@@ -194,30 +194,30 @@ export default function TokenPage() {
         // Ensure address is valid and trimmed
         _tokenAddr = _tokenAddr.length > 42 ? _tokenAddr.slice(0, 42) : _tokenAddr;
         const userAddress = account.address;
-    
+
         if (
           !_tokenAddr ||
           !isValidAddress(_tokenAddr) ||
           !userAddress ||
           !isValidAddress(userAddress)
         ) return;
-    
+
         const signer = await provider.getSigner();
         // ERC20 contract instance
         const tokenContract = new ethers.Contract(_tokenAddr, erc20ABI, signer);
-    
+
         // Get token balance (ERC20)
         const rawTokenBalance = await tokenContract.balanceOf(userAddress);
         const tokenBalance = parseFloat(formatUnits(rawTokenBalance, Config.CURVE_DEC));
         const balance = tokenBalance > 0.005 ? (tokenBalance - 0.005).toFixed(2) : "0.00";
-    
+
         // Get native coin balance (Epix/ETH/BNB)
         const rawNativeBalance = await provider.getBalance(userAddress);
         const epixBal = parseFloat(formatUnits(rawNativeBalance, Config.WETH_DEC)).toFixed(4);
-    
+
         // Set the state or return the values
         setTokenInfo({ balance, epixBal });
-    
+
       } catch (error) {
         console.error("getTokenInfo error:", error);
       }
