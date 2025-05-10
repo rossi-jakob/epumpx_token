@@ -28,7 +28,7 @@ export const RaisedToken = () => {
                 `aspect-square rounded-2xl flex items-center justify-center text-2x p-1 h-18 w-18 cursor-pointer `,
                 {
                   "bg-[#161616] ": !selectedTags.includes(token.id),
-                  "bg-linear-to-r from-[#AE96E0] to-[#A590D0]":
+                  "bg-linear-to-r from-[#262626] to-[#363636]":
                     selectedTags.includes(token.id),
                 }
               )}
