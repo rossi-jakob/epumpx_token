@@ -30,7 +30,7 @@ module.exports = {
       },
     ]
   },
-  defaultNetwork: "epix_testnet",
+  // defaultNetwork: epix_testnet,
   networks: {
     quai: {
       url: 'https://quai.rpc.com',
@@ -64,7 +64,7 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
-      'epix_testnet': "epix"
+      epix_testnet: "epix"
     },
     customChains: [
       {
@@ -119,7 +119,7 @@ module.exports = {
         network: "epix_testnet",
         chainId: 1917,
         urls: {
-          apiURL: "https://data-seed-prebsc-2-s2.bnbchain.org:8545",
+          apiURL: "https://testscan.epix.zone/api/",
           browserURL: "https://testscan.epix.zone/"
         }
       },

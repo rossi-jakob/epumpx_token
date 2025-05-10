@@ -43,19 +43,28 @@ async function main() {
     let virtualX;
     let virtualY;
 
-    virtualX = '2833333333333333333333'
+    // virtualX = '2833333333333333333333'
+    // virtualY = '1057466666666666666666666667'
+    virtualX = '966666666666666667'
     virtualY = '1057466666666666666666666667'
 
     const evmFunCurve = await hre.ethers.deployContract("EvmFunCurve");
     await evmFunCurve.waitForDeployment();
     console.log(`EvmFunCurve deployed to ${evmFunCurve.target}`);
 
-    // console.log('deploy Multicall3');
-    // const multiCall3 = await hre.ethers.deployContract("Multicall3");
-    // await multiCall3.waitForDeployment();
-    // console.log(`Multicall3 deployed to ${multiCall3.target}`);
+    console.log('Waiting 30 seconds before verifying...');
+    await new Promise((resolve) => setTimeout(resolve, 20000));
 
-    //await verify(multiCall3.target, []);
+    console.log('Verifying EvmFunCurve...');
+    try {
+      await hre.run("verify:verify", {
+        address: evmFunCurve.target,
+        constructorArguments: [],
+      });
+      console.log('EvmFunCurve verified successfully');
+    } catch (e) {
+      console.error('EvmFunCurve verification failed:', e.message);
+    }
 
     console.log('deploy TransparentUpgradeableProxy');
 
