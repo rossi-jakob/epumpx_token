@@ -39,7 +39,7 @@ export function TokenCarousel({
     const initialX = direction === "ltr" ? 0 : -width;
     const targetX = direction === "ltr" ? -width : 0;
     const duration = calculateDuration(width);
-  
+
     currentX.current = initialX;
     controls.set({ x: initialX });
     controls.start({
@@ -81,29 +81,29 @@ export function TokenCarousel({
         onMouseLeave={() => {
           const width = scrollWidthRef.current;
           let fromX = currentX.current;
-        
+
           const isAtLoopEnd = direction === "ltr"
             ? fromX <= -width + 1 // Add a small tolerance
             : fromX >= -1;
-        
+
           if (isAtLoopEnd) {
             // Loop finished → reset to start
             fromX = direction === "ltr" ? 0 : -width;
             controls.set({ x: fromX });
             currentX.current = fromX;
           }
-        
+
           const targetX = direction === "ltr" ? -width : 0;
           const remaining = Math.abs(targetX - fromX);
           const duration = remaining / speed;
-        
+
           // If distance is too small, just restart full loop
           if (remaining < 100) {
             console.log("remain is less than 2")
             startLoop(); // Call the proper startLoop method
             return;
           }
-        
+
           controls.set({ x: fromX }); // Resume from current
           controls.start({
             x: targetX,
