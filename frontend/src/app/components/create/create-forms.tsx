@@ -13,15 +13,8 @@ import { toast } from "react-toastify";
 import Config from "../../config/config"
 
 import curveABI from "../../../abi/curve.json";
-import multicallABI from "../../../abi/multicall.json"
 
-import { encodeFunctionData, parseUnits, formatUnits, decodeEventLog } from "viem";
-import {
-  estimateGas,
-  writeContract,
-  waitForTransactionReceipt,
-  multicall,
-} from "@wagmi/core";
+import { formatUnits, decodeEventLog } from "viem";
 
 import { useAccount, useConfig } from "wagmi";
 import {
@@ -45,8 +38,7 @@ export const CreateForms = () => {
 
   const router = useRouter()
   const account = useAccount()
-  const { isConnected, address } = useAccount()
-  const config = useConfig()
+  const { isConnected } = useAccount()
   const { t } = useTranslation()
 
   const { openConnectModal } = useConnectModal();
