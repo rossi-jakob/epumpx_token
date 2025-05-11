@@ -145,7 +145,7 @@ contract EvmFunCurve is
         priceFeed = IPriceFeed(0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526);
         hardcap = 3 ether; //900 epix;
         kingcap = 1.2 ether;
-        CREATE_FEE = 0.02 ether;
+        CREATE_FEE = 0.002 ether;
         CURVE_FEE = 0.2 ether;
     }
 
