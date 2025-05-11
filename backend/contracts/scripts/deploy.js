@@ -43,9 +43,7 @@ async function main() {
     let virtualX;
     let virtualY;
 
-    // virtualX = '2833333333333333333333'
-    // virtualY = '1057466666666666666666666667'
-    virtualX = '966666666666666667'
+    virtualX = '314333333333333333333'
     virtualY = '1057466666666666666666666667'
 
     const evmFunCurve = await hre.ethers.deployContract("EvmFunCurve");
@@ -53,7 +51,7 @@ async function main() {
     console.log(`EvmFunCurve deployed to ${evmFunCurve.target}`);
 
     console.log('Waiting 30 seconds before verifying...');
-    await new Promise((resolve) => setTimeout(resolve, 20000));
+    await new Promise((resolve) => setTimeout(resolve, 10000));
 
     console.log('Verifying EvmFunCurve...');
     try {

@@ -30,7 +30,7 @@ module.exports = {
       },
     ]
   },
-  // defaultNetwork: epix_testnet,
+  defaultNetwork: "epix_testnet",
   networks: {
     quai: {
       url: 'https://quai.rpc.com',
