@@ -134,17 +134,17 @@ contract EvmFunCurve is
 
         // TODO
         team = address(0x9cf95191eD0Da876a5D8b6f42C51C39495c788CD);
-        dev = address(0x9cf95191eD0Da876a5D8b6f42C51C39495c788CD);
+        dev = address(0x5E81267A864a22Bf3f6ED48F66409f4E2d081837);
         dead = address(0x1FD6690a815E319c4f7dCcB51f3F79390d556e28);
 
         // BSCTestnet
         // TODO
         router = address(0x5A26DD8A6F0C7BfAE37010321E275F141F6de64e);
         factory = address(0xA94706dc18b0d3A9D9740559760321D72db124f3);
-        weth = address(0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd);
+        weth = address(0x3Ec93162b35d0704b2dE2C632D4A534F8E325d2A);
         priceFeed = IPriceFeed(0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526);
-        hardcap = 3 ether; //8500 ether;
-        kingcap = 6800 ether;
+        hardcap = 3 ether; //900 epix;
+        kingcap = 1.2 ether;
         CREATE_FEE = 0.02 ether;
         CURVE_FEE = 0.2 ether;
     }
@@ -252,12 +252,12 @@ contract EvmFunCurve is
             emit KingOfTheHill(token, msg.sender, tokenAmount);
         }
 
-        // if (referrer != address(0) && REF_FEE  > 0) {
-        //     IERC20(token).transfer(referrer, tokenAmount * REF_FEE / 100);
-        //     IERC20(token).transfer(msg.sender, tokenAmount * (100-REF_FEE) / 100);
-        // } else {
-        //     IERC20(token).transfer(msg.sender, tokenAmount);
-        // }
+        if (referrer != address(0) && REF_FEE  > 0) {
+            IERC20(token).transfer(referrer, tokenAmount * REF_FEE / 100);
+            IERC20(token).transfer(msg.sender, tokenAmount * (100-REF_FEE) / 100);
+        } else {
+            IERC20(token).transfer(msg.sender, tokenAmount);
+        }
 
         emit Buy(
             msg.sender,

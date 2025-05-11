@@ -339,8 +339,7 @@ export function useCurveStatus(refresh = true, tokenAddr = '0x000000000000000000
 
       try {
         const provider = new ethers.JsonRpcProvider(Config.RPC_URL);
-        const signer = await provider.getSigner();
-        const curveContract = new ethers.Contract(Config.CURVE, curveABI, signer);
+        const curveContract = new ethers.Contract(Config.CURVE, curveABI, provider);
 
         // Perform contract calls
         const curveInfo = await curveContract.curveInfo(_tokenAddr);
