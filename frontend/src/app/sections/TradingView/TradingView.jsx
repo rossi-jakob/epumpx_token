@@ -56,8 +56,59 @@ function TradingView({
   const [errMsg, setErrMsg] = useState("");
 
   const container = useRef();
-
   const provider = new ethers.BrowserProvider(window.ethereum); // or your custom provider
+
+  const postComment = async () => {
+    if (pending) return;
+    if (!account.isConnected) {
+      toast.warn("Please connect your wallet!", toastConfig);
+      return;
+    }
+    if (comment.trim().length < 1) {
+      toast.warn("Please enter a comment!", toastConfig);
+      return;
+    }
+    if (Socket) {
+      let filePath = null;
+      if (file && image) {
+        setPending(true);
+        const formData = new FormData();
+        formData.append("image", image);
+        const { data: response } = await axios.post(
+          "/api/misc/upload_image",
+          formData,
+          {
+            headers: {
+              Accept: "*/**",
+              "Content-Type": "multipart/form-data",
+              "Access-Control-Allow-Origin": "*",
+              "Access-Control-Allow-Headers":
+                "Access-Control-Allow-Headers, Content-Type, Authorization",
+              "Access-Control-Allow-Methods": "*",
+              "Cross-Origin-Resource-Policy": "*",
+              timeout: 1000,
+            },
+          }
+        );
+        filePath = response.data;
+      }
+      Socket.emit(
+        "NEW_COMMENT",
+        account.address,
+        tokenAddr,
+        comment,
+        filePath,
+        Date.now()
+      );
+      setPending(false);
+      setChatPopup(false);
+      setComment("");
+      fileRef.current.value = "";
+      setImage(null);
+      setFile(null);
+      toast.success("Successfully posted!", toastConfig);
+    }
+  };
 
   useEffect(() => {
     if (pending) {
