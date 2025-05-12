@@ -27,6 +27,8 @@ import Chart from "@/components/tradingview";
 import Slippage from "@/app/components/slippage/Slippage";
 
 import { useCurveStatus } from "@/app/components/hooks/useCurveStatus";
+import usePagination from "@/app/utils/pagination"
+import Socket from "@/app/utils/socket";
 
 function TradingView({
   tokenAddr,
@@ -54,9 +56,34 @@ function TradingView({
   const [pending, setPending] = useState(false);
   const [btnMsg, setBtnMsg] = useState("Swap");
   const [errMsg, setErrMsg] = useState("");
+  const [chatTrade, setChatTrade] = useState("chat");
+  const [chatPopup, setChatPopup] = useState(false);
+
+  const [comment, setComment] = useState("");
+  const [image, setImage] = useState();
+  const [file, setFile] = useState(null);
+  let [chatPage, setChatPage] = useState(1);
+  let [tradePage, setTradePage] = useState(1);
 
   const container = useRef();
   const provider = new ethers.BrowserProvider(window.ethereum); // or your custom provider
+
+  const PER_PAGE = 10;
+  const fileRef = useRef();
+
+  const imageChange = (event) => {
+    const file = event.target.files[0];
+    setImage(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setFile(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const [allChats, setAllChats] = useState([]);
 
   const postComment = async () => {
     if (pending) return;
@@ -67,6 +94,29 @@ function TradingView({
     if (comment.trim().length < 1) {
       toast.warn("Please enter a comment!", toastConfig);
       return;
+    }
+    let filePath = null;
+    if (file && image) {
+      setPending(true);
+      const formData = new FormData();
+      formData.append("image", image);
+      const { data: response } = await axios.post(
+        "/api/misc/upload_image",
+        formData,
+        {
+          headers: {
+            Accept: "*/**",
+            "Content-Type": "multipart/form-data",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers":
+              "Access-Control-Allow-Headers, Content-Type, Authorization",
+            "Access-Control-Allow-Methods": "*",
+            "Cross-Origin-Resource-Policy": "*",
+            timeout: 1000,
+          },
+        }
+      );
+      filePath = response.data;
     }
     if (Socket) {
       let filePath = null;
@@ -108,6 +158,49 @@ function TradingView({
       setFile(null);
       toast.success("Successfully posted!", toastConfig);
     }
+  };
+
+  useEffect(() => {
+    const connect = () => {
+      if (!account.isConnected) return;
+      Socket.emit("CONNECTED", account.address, tokenAddr);
+    };
+    const AllChats = (_allchats) => {
+      // console.log("all chats", _allchats)
+      setAllChats(_allchats);
+    };
+
+    Socket.connect();
+    if (tokenAddr && Socket) {
+      Socket.emit("GET_ALL_CHATS", tokenAddr);
+      Socket.emit("JOIN", tokenAddr);
+    }
+
+    Socket.on("connect", connect);
+    Socket.on("ALL_CHATS", AllChats);
+
+    return () => {
+      Socket.off("connect", connect);
+      Socket.off("ALL_CHATS", AllChats);
+      Socket.disconnect();
+    };
+  }, [account.isConnected, account.address, tokenAddr]);
+
+  // chat data
+  const chatCount = Math.ceil(allChats?.length / PER_PAGE);
+  const chatData = usePagination(allChats, PER_PAGE);
+  // trade data
+  const tradeCount = Math.ceil(tradeData?.length / PER_PAGE);
+  const getTradeData = usePagination(tradeData, PER_PAGE);
+
+
+  const handleChatChange = (e, p) => {
+    setChatPage(p);
+    chatData.jump(p);
+  };
+  const handleTradeChange = (e, p) => {
+    setTradePage(p);
+    getTradeData.jump(p);
   };
 
   useEffect(() => {
@@ -592,7 +685,7 @@ function TradingView({
                         {/* links */}
                         <div className="links flex gap-2.5">
                           {curveInfo?.website &&
-                          curveInfo?.website.length > 0 ? (
+                            curveInfo?.website.length > 0 ? (
                             <a
                               href={curveInfo?.website}
                               className="website text-base hover:text-secondary transition-all duration-300"
@@ -604,7 +697,7 @@ function TradingView({
                             <></>
                           )}
                           {curveInfo?.telegram &&
-                          curveInfo?.telegram.length > 0 ? (
+                            curveInfo?.telegram.length > 0 ? (
                             <a
                               href={curveInfo?.telegram}
                               className="telegram text-base hover:text-secondary transition-all duration-300"
@@ -616,7 +709,7 @@ function TradingView({
                             <></>
                           )}
                           {curveInfo?.twitter &&
-                          curveInfo?.twitter.length > 0 ? (
+                            curveInfo?.twitter.length > 0 ? (
                             <a
                               href={curveInfo?.twitter}
                               className="twitter text-base hover:text-secondary transition-all duration-300"
@@ -665,14 +758,13 @@ function TradingView({
                       >
                         {curveInfo.symbol && tokenAddr ? (
                           curveInfo?.status !== undefined &&
-                          Number(curveInfo?.status) !== 2 ? (
+                            Number(curveInfo?.status) !== 2 ? (
                             <Chart
                               stock={"Stock"}
                               interval="1"
                               tokenId={tokenAddr}
-                              symbol={`${
-                                curveInfo.symbol ? curveInfo.symbol : "---"
-                              }/USD`}
+                              symbol={`${curveInfo.symbol ? curveInfo.symbol : "---"
+                                }/USD`}
                             />
                           ) : (
                             <iframe
@@ -689,22 +781,151 @@ function TradingView({
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 mt-6">
-              <Button
-                variant="outline"
-                className="text-md font-bold border-2 border-gray-400"
-                onClick={() => setCommentToggle(true)}
-              >
-                {t("comment")}
-              </Button>
-              <Button
-                className="text-md font-bold text-white"
-                onClick={() => setCommentToggle(false)}
-              >
-                {t("trades")}
-              </Button>
+            <div className="mt-6 space-y-4">
+              {/* Top: Comment & Trades Buttons */}
+              <div className="flex items-center gap-2">
+                {
+                  <Button
+                    variant={!toggleComment ? "outline" : ""}
+                    className={`text-md font-bold text-white border-2 ${!toggleComment ? "border-gray-400" : ""}`}
+                    onClick={() => setCommentToggle(true)}
+                  >
+                    {t("comment")}
+                  </Button>
+                }
+                {
+                  <Button
+                    variant={toggleComment ? "outline" : ""}
+                    className={`text-md font-bold text-white border-2 ${toggleComment ? "border-gray-400" : ""}`}
+                    onClick={() => setCommentToggle(false)}
+                  >
+                    {t("trades")}
+                  </Button>
+                }
+
+              </div>
+
+              {/* new comment */}
+              {toggleComment &&
+                <div className="related bg-[#191C2F] w-full m-auto space-y-4 text-gray-400 rounded-4xl p-6 mt-6 h-full">
+                  <div className="flex flex-col">
+                    <label htmlFor="comment-box ">{t("addComment")}</label>
+                    {/* text */}
+                    <textarea
+                      id="comment-box"
+                      name="comment-box"
+                      rows="10"
+                      placeholder={t("writeComment")}
+                      className="border-1 border-gray-400 mt-2 p-2 !text-gray-400 rounded-md"
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                    ></textarea>
+                  </div>
+
+                  {/* choice image */}
+                  {
+                    <div className="choice-image">
+                      <div className="mb-2">{t("imgOptional")}</div>
+                      <label htmlFor="file-input-medium" className="sr-only">
+                        {t("selectMedia")}
+                      </label>
+                      <input
+                        type="file"
+                        name="file-input-medium"
+                        accept="image/png, image/gif, image/jpeg"
+                        id="file-input-medium"
+                        className="block w-full border-dark shadow-sm rounded-sm text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 file:bg-primary !text-dark border-2 border-dashed text-whti file:border-0 file:me-4 file:py-3
+                      file:px-4 file:!text-white"
+                        onChange={imageChange}
+                        ref={fileRef}
+                      />
+                    </div>
+                  }
+
+                  {/* post button */}
+                  <div className="wrap flex justify-end items-center gap-x-4 mt-4">
+                    <Button
+                      className="text-md font-bold text-white"
+                      onClick={() => postComment()}
+                    >
+                      {pending ? t("uploading") : t("postComment")}
+                    </Button>
+                  </div>
+                </div>
+              }
+
+              {/* Bottom: Comment Box or Trade Table */}
+              {!toggleComment &&
+                <div className="bg-[#1B1E2E] rounded-4xl overflow-hidden">
+                  <div className="bg-gradient-to-r from-[#0996FF] to-[#0765D0] font-bold py-3 text-center mx-52 rounded-b-4xl">
+                    {t("tokenTrades")}
+                  </div>
+                  {/* Trade Table */}
+                  <div className="max-h-[500px] overflow-y-auto table-scroll-container px-8 mt-6">
+                    <table className="table-auto w-full whitespace-nowrap">
+                      <thead className="sticky top-0 bg-[#1B1E2E] z-10">
+                        <tr className="text-white font-bold text-sm border-b border-gray-800">
+                          <th className="text-left text-white px-4 py-2">{t("trader")}</th>
+                          <th className="text-left text-white px-4 py-2">{t("type")}</th>
+                          <th className="text-left text-white px-4 py-2">EPIX</th>
+                          <th className="text-left text-white px-4 py-2">{t("token")}</th>
+                          <th className="text-left text-white px-4 py-2">{t("time")}</th>
+                          <th className="text-left text-white px-4 py-2">Tx</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tradeData && tradeData.length > 0 && getTradeData?.currentData()?.map((item, i) => (
+                          <tr key={i}>
+                            <td className="flex gap-1 items-center">
+                              <Link
+                                href={`${Config.SCAN_LINK}/address/${item.trader}`}
+                                target="_blank"
+                                className="text-primary"
+                              >
+                                {spliceAdress(item.trader)}
+                              </Link>
+                            </td>
+                            <td>{item.isBuy ? "Buy" : "Sell"}</td>
+                            <td>{Number(formatEther(item.eth)).toFixed(4)}</td>
+                            <td>{Number(formatEther(item.amount)).toFixed(2)}</td>
+                            <td>{new Date(item.blockTimestamp * 1000).toLocaleString()}</td>
+                            <td>
+                              <Link
+                                href={`${Config.SCAN_LINK}/tx/${item.transactionHash}`}
+                                target="_blank"
+                                className="text-primary"
+                              >
+                                {spliceAdress(item.transactionHash)}
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination */}
+                  <div className="mt-4 flex justify-center">
+                    <div className="flex items-center space-x-1">
+                      {Array.from({ length: tradeCount }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => handleTradeChange(null, page)}
+                          className={`px-3 py-1 rounded-md border text-sm ${tradePage === page
+                            ? "bg-purple-600 text-white border-purple-600"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                            }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              }
             </div>
-            {!toggleComment ? (
+
+            {/* {!toggleComment ? (
               <TokenTrades
                 tokenAddr={tokenAddr}
                 tokenInfo={tokenInfo}
@@ -712,7 +933,7 @@ function TradingView({
               />
             ) : (
               <span>{curveInfo.description}</span>
-            )}
+            )} */}
           </div>
 
           {/* swap */}
@@ -720,31 +941,29 @@ function TradingView({
             <TokenSidebarInfo curveInfo={curveInfo} />
             <div className="space-y-2 mt-8 mb-6">
               <div className="text-md text-white font-bold">
-                {`Bonding Curve Progress: ${
-                  curveInfo?.funds >= 0
-                    ? curveInfo.funds > Config.CURVE_HARDCAP
-                      ? 100
-                      : (
-                          (curveInfo.funds * 100) /
-                          Config.CURVE_HARDCAP
-                        ).toFixed(2)
-                    : 0
-                }%`}
+                {`Bonding Curve Progress: ${curveInfo?.funds >= 0
+                  ? curveInfo.funds > Config.CURVE_HARDCAP
+                    ? 100
+                    : (
+                      (curveInfo.funds * 100) /
+                      Config.CURVE_HARDCAP
+                    ).toFixed(2)
+                  : 0
+                  }%`}
               </div>
               <div className="w-full h-2 bg-[#474647]  rounded-full overflow-hidden">
                 <div
                   className="h-full bg-linear-to-r from-[#8346FF] to-[#9458DF]"
                   style={{
-                    width: `${
-                      curveInfo?.funds >= 0
-                        ? curveInfo.funds > Config.CURVE_HARDCAP
-                          ? 100
-                          : (
-                              (curveInfo.funds * 100) /
-                              Config.CURVE_HARDCAP
-                            ).toFixed(2)
-                        : 0
-                    }%`,
+                    width: `${curveInfo?.funds >= 0
+                      ? curveInfo.funds > Config.CURVE_HARDCAP
+                        ? 100
+                        : (
+                          (curveInfo.funds * 100) /
+                          Config.CURVE_HARDCAP
+                        ).toFixed(2)
+                      : 0
+                      }%`,
                   }}
                 ></div>
               </div>
@@ -847,54 +1066,56 @@ function TradingView({
               </div>
 
               <div
-                className={`grid ${
-                  !swapToggle ? "grid-cols-3" : "grid-cols-4"
-                } gap-2 mb-6`}
+                className={`grid ${!swapToggle ? "grid-cols-3" : "grid-cols-4"
+                  } gap-2 mb-6`}
               >
                 {!swapToggle
                   ? ["10 EPIX", "50 EPIX", "100 EPIX"].map((amount) => (
-                      <Button
-                        key={amount}
-                        variant="ghost"
-                        className="bg-[#232321] text-white font-bold hover:bg-[#2C2C2C] hover:text-white cursor-pointer"
-                        onClick={() => setEpixAmount(amount.split(" ")[0])}
-                      >
-                        {amount}
-                      </Button>
-                    ))
+                    <Button
+                      key={amount}
+                      variant="ghost"
+                      className="bg-[#232321] text-white font-bold hover:bg-[#2C2C2C] hover:text-white cursor-pointer"
+                      onClick={() => setEpixAmount(amount.split(" ")[0])}
+                    >
+                      {amount}
+                    </Button>
+                  ))
                   : ["25%", "50%", "75%", "100%"].map((amount) => (
-                      <Button
-                        key={amount}
-                        variant="ghost"
-                        className="bg-[#232321] text-white font-bold hover:bg-[#2C2C2C] hover:text-white cursor-pointer"
-                        onClick={() =>
-                          setTokenAmount(
-                            (
-                              (Number(amount.slice(0, -1)) *
-                                tokenInfo?.balance) /
-                              100
-                            ).toString()
-                          )
-                        }
-                      >
-                        {amount}
-                      </Button>
-                    ))}
+                    <Button
+                      key={amount}
+                      variant="ghost"
+                      className="bg-[#232321] text-white font-bold hover:bg-[#2C2C2C] hover:text-white cursor-pointer"
+                      onClick={() =>
+                        setTokenAmount(
+                          (
+                            (Number(amount.slice(0, -1)) *
+                              tokenInfo?.balance) /
+                            100
+                          ).toString()
+                        )
+                      }
+                    >
+                      {amount}
+                    </Button>
+                  ))}
               </div>
-
               <Button
-                className="w-full bg-yellow-500 text-white text-md hover:bg-yellow-400 font-bold"
                 onClick={handleSwap}
+                disabled={pending || (Number(curveInfo?.status) == 2)}
+                className={`w-full text-white text-md font-bold transition-colors ${pending
+                    ? "bg-yellow-300 cursor-not-allowed pointer-events-none"
+                    : "bg-yellow-500 hover:bg-yellow-400"
+                  }`}
               >
-                {t("trade")}
+                {pending ? "Trading..." : t("trade")}
               </Button>
               <span className="text-white mt-5 px-2 block text-sm font-bold">
                 {t("thereare")}{" "}
                 <b className="text-md">
                   {curveInfo
                     ? (
-                        Number(curveInfo.totalSupply) - Number(curveInfo.supply)
-                      ).toFixed(2)
+                      Number(curveInfo.totalSupply) - Number(curveInfo.supply)
+                    ).toFixed(2)
                     : "1000,000,000"}{" "}
                   {curveInfo ? curveInfo.symbol : "Token"}
                 </b>{" "}

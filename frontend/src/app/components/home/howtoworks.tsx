@@ -34,7 +34,7 @@ export const HowItWorks = ({ onClose }: { onClose: () => void }) => {
                 <div className="aspect-video rounded overflow-hidden mb-2">
                     <iframe
                         className="w-full h-full"
-                        src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
+                        src="https://www.youtube.com/embed/uKFvJFwwV3w"
                         title="How it works video"
                         frameBorder="0"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -72,7 +72,7 @@ export const HowItWorks = ({ onClose }: { onClose: () => void }) => {
                     onClick={() => toggleSection('listing')}
                 >
                     <p className="mt-2 text-gray-300">
-                        1. 100% of the liquidity is then deposited in MudSwap and burned<br/>
+                        1. 100% of the liquidity is then deposited in MudSwap and burned<br />
                         2. Once bonding curve reaches 100% (approximately 8500 EPIX), the seeding process will begin
                     </p>
                 </AccordionItem>

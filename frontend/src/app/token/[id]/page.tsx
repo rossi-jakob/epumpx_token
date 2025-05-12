@@ -28,12 +28,6 @@ export default function TokenPage() {
   const [refresh, setRefresh] = useState(false);
   const [isLoaded, setLoaded] = useState(false)
 
-  // const {
-  //   allCurves,
-  //   tradeInfo,
-  //   otherInfo,
-  // } = useCurveStatus(refresh, tokenAddr as any);
-
   const account = useAccount();
 
   const [refetch, setRefetch] = useState(false);
@@ -256,8 +250,6 @@ export default function TokenPage() {
               curveInfo={curveInfo}
               refresh={refresh}
               setRefresh={setRefresh}
-            // tradeInfo={tradeInfo}
-            // otherInfo={otherInfo}
             />
           </div>
         </div>

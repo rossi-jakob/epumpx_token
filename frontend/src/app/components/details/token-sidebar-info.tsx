@@ -17,9 +17,10 @@ export const TokenSidebarInfo = ({curveInfo} : any) => {
         </div>
         <div className="flex flex-col  gap-2">
           <h3 className="text-xl font-bold text-white">{curveInfo?.symbol} / EPIX</h3>
-          <Button variant="outline" className="text-md font-bold">
+          
+          {(Number(curveInfo.status) != 2) && <Button variant="outline" className="text-md font-bold">
             {t("meme")}
-          </Button>
+          </Button>}
 
           <div>
             <p className="text-sm text-white font-bold">{curveInfo?.description}</p>
