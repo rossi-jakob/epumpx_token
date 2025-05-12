@@ -122,7 +122,7 @@ export function TokenCarousel({
           }
         }}
       >
-        {[...tokens, ...tokens].map((token, index) => (
+        {(tokens.length>6? [...tokens, ...tokens]:[...tokens, ...tokens, ...tokens, ...tokens, ...tokens, ...tokens, ...tokens]).map((token, index) => (
           <div
             key={index}
             className="flex-shrink-0 select-none mx-2 hover:cursor-pointer hover:outline hover:outline-2 hover:outline-[#8346FF] hover:rounded-full m-2"
