@@ -814,7 +814,7 @@ function TradingView({
                     <textarea
                       id="comment-box"
                       name="comment-box"
-                      rows="10"
+                      rows="5"
                       placeholder={t("writeComment")}
                       className="border-1 border-gray-400 mt-2 p-2 !text-gray-400 rounded-md"
                       value={comment}
@@ -1107,7 +1107,7 @@ function TradingView({
                     : "bg-yellow-500 hover:bg-yellow-400"
                   }`}
               >
-                {pending ? "Trading..." : t("trade")}
+                {pending ? t("trading") : t("trade")}
               </Button>
               <span className="text-white mt-5 px-2 block text-sm font-bold">
                 {t("thereare")}{" "}
