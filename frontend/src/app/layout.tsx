@@ -15,35 +15,31 @@ const Exo2 = Exo_2({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://epumpx-token.vercel.app/'),
   title: 'EPumpX',
   description: 'EPumpX is Pumpfun on EPIX chain.',
+  metadataBase: new URL('https://epumpx-token.vercel.app'), // Needed for Open Graph absolute URLs
   openGraph: {
     title: 'EPumpX',
     description: 'EPumpX is Pumpfun on EPIX chain.',
-    images: [{
-      url: 'public/epix-thumbnail.webp',
-      width: 1280,
-      height: 720,
-      alt: 'EPumpX Logo',
-    }],
-    url: 'https://epumpx-token.vercel.app/',
+    url: 'https://epumpx-token.vercel.app',
     siteName: 'EPumpX',
-    locale: 'en_US',
+    images: [
+      {
+        url: '/epix-thumbnail.webp',
+        width: 1280,
+        height: 720,
+        alt: 'EPumpX Logo',
+      },
+    ],
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'EPumpXFun',
+    title: 'EPumpX',
     description: 'EPumpX is Pumpfun on EPIX chain.',
-    images: ['public/epix-thumbnail.webp'],
+    images: ['/epix-thumbnail.webp'],
   },
-  // Add these explicit tags to override any potential cached values
-  other: {
-    'og:description': 'EPumpX is Pumpfun on EPIX chain.',
-    'twitter:description': 'EPumpX is Pumpfun on EPIX chain.',
-  }
-}
+};
 
 export default function RootLayout({
   children,
