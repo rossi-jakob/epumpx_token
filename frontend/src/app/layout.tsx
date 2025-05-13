@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://epumpx-token.vercel.app'), // Needed for Open Graph absolute URLs
   openGraph: {
     title: 'EPumpX',
-    description: 'EPumpX is Pumpfun on EPIX chain.',
+    description: "Launch your own meme coin in seconds. No coding, no barriers—just launch and trade. It's fast, cheap, and open to everyone. Start now and be early. Your coin could be the next big thing.",
     url: 'https://epumpx-token.vercel.app',
     siteName: 'EPumpX',
     images: [
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'EPumpX',
-    description: 'EPumpX is Pumpfun on EPIX chain.',
+    description: "Launch your own meme coin in seconds. No coding, no barriers—just launch and trade. It's fast, cheap, and open to everyone. Start now and be early. Your coin could be the next big thing.",
     images: ['/epix-thumbnail.webp'],
   },
 };
