@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     title: 'EPumpX',
     description: 'EPumpX is Pumpfun on EPIX chain.',
     images: [{
-      url: '/epix-thumbnail.png',
+      url: 'public/epix-thumbnail.webp',
       width: 1280,
       height: 720,
       alt: 'EPumpX Logo',
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'EPumpXFun',
     description: 'EPumpX is Pumpfun on EPIX chain.',
-    images: ['/epix-thumbnail.png'],
+    images: ['public/epix-thumbnail.webp'],
   },
   // Add these explicit tags to override any potential cached values
   other: {
