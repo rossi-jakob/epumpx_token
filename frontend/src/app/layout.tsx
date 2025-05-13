@@ -15,19 +15,19 @@ const Exo2 = Exo_2({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://epumpx.vercel.app'),
+  metadataBase: new URL('https://epumpx-token.vercel.app/'),
   title: 'EPumpX',
   description: 'EPumpX is Pumpfun on EPIX chain.',
   openGraph: {
     title: 'EPumpX',
     description: 'EPumpX is Pumpfun on EPIX chain.',
     images: [{
-      url: '../public/epix-thumbnail.png',
+      url: 'epix-thumbnail.png',
       width: 1280,
       height: 720,
       alt: 'EPumpX Logo',
     }],
-    url: 'https://epumpx.vercel.app',
+    url: 'https://epumpx-token.vercel.app/',
     siteName: 'EPumpX',
     locale: 'en_US',
     type: 'website',
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'EPumpXFun',
     description: 'EPumpX is Pumpfun on EPIX chain.',
-    images: ['../public/epix-thumbnail.png'],
+    images: ['epix-thumbnail.png'],
   },
   // Add these explicit tags to override any potential cached values
   other: {
