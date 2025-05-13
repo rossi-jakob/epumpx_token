@@ -16,7 +16,7 @@ const Exo2 = Exo_2({
 
 export const metadata: Metadata = {
   title: 'EPumpX',
-  description: 'EPumpX is Pumpfun on EPIX chain.',
+  description: "Launch your own meme coin in seconds. No coding, no barriers—just launch and trade. It's fast, cheap, and open to everyone. Start now and be early. Your coin could be the next big thing.",
   metadataBase: new URL('https://epumpx-token.vercel.app'), // Needed for Open Graph absolute URLs
   openGraph: {
     title: 'EPumpX',
