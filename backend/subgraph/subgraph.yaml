@@ -8,7 +8,7 @@ dataSources:
     name: curve
     network: epixTestnet
     source:
-      address: "0xccD99E567eb6E26BF5CBa3dBf110b6356CAa6F4b"
+      address: "0x3171F088eA6714Ff5A2A4Ae7C2dF78023A35CAC7"
       abi: curve
       startBlock: 324883
     mapping:
