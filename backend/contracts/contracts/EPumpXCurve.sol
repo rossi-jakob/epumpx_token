@@ -60,6 +60,14 @@ contract EPumpXCurve is
     address public factory;
     address public weth;
 
+    // EPIX/USDC pair for price data
+    address public epixUsdcPair;
+    address public epix;
+    address public usdc;
+
+    // Pending withdrawals for pull pattern
+    mapping(address => uint256) public pendingWithdrawals;
+
     uint256 public CREATE_FEE;
     uint256 public REF_FEE;
 
@@ -112,6 +120,8 @@ contract EPumpXCurve is
         uint256 latestPriceInUSD
     );
 
+    event WithdrawalCompleted(address indexed recipient, uint256 amount);
+
     function initialize(uint256 _vX, uint256 _vY) public initializer {
         __Ownable_init();
         __ReentrancyGuard_init();
@@ -126,8 +136,8 @@ contract EPumpXCurve is
         PRICE_DENOM = 10 ** 12;
 
         // CURVE_FEE = 1000; // % fee
-        DEV_FEE = 99;
-        TEAM_FEE = 1;
+        DEV_FEE = 50;
+        TEAM_FEE = 50;
         REF_FEE = 20;
 
         totalSupply = 10 ** 9 * 10 ** 18; // 1 Billion
@@ -141,8 +151,15 @@ contract EPumpXCurve is
         // TODO
         router = address(0x5A26DD8A6F0C7BfAE37010321E275F141F6de64e);
         factory = address(0xA94706dc18b0d3A9D9740559760321D72db124f3);
-        weth = address(0x3Ec93162b35d0704b2dE2C632D4A534F8E325d2A);
+        weth = address(0x3Ec93162b35d0704b2dE2C632D4A534F8E325d2A); // This is actually EPIX
         priceFeed = IPriceFeed(0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526);
+
+        // Initialize EPIX/USDC pair variables to empty values
+        // These must be set via setEpixUsdcPair before using getLatestEpixPrice
+        epixUsdcPair = address(0);
+        epix = address(0);
+        usdc = address(0);
+
         hardcap = 3 ether; //900 epix;
         kingcap = 1.2 ether;
         CREATE_FEE = 0.002 ether;
@@ -157,6 +174,27 @@ contract EPumpXCurve is
     function safeTransferETH(address to, uint256 value) internal {
         (bool success, ) = to.call{value: value}(new bytes(0));
         require(success, "TransferHelper: ETH_TRANSFER_FAILED");
+    }
+
+    // Add funds to pending withdrawals
+    function addPendingWithdrawal(address recipient, uint256 amount) internal {
+        pendingWithdrawals[recipient] += amount;
+    }
+
+    // Withdraw pending funds - follows pull pattern to prevent reentrancy
+    function withdrawPendingFunds() external nonReentrant {
+        uint256 amount = pendingWithdrawals[msg.sender];
+        require(amount > 0, "No pending withdrawals");
+
+        // Update state before external call
+        pendingWithdrawals[msg.sender] = 0;
+
+        // External call after state update
+        (bool success, ) = msg.sender.call{value: amount}(new bytes(0));
+        require(success, "ETH transfer failed");
+
+        // Emit event after successful transfer
+        emit WithdrawalCompleted(msg.sender, amount);
     }
 
     function createCurve(
@@ -194,8 +232,12 @@ contract EPumpXCurve is
 
         require(msg.value >= CREATE_FEE, "INSUFFICIENT_ETH");
         uint256 teamFee = (CREATE_FEE * DEV_FEE) / (TEAM_FEE + DEV_FEE);
-        safeTransferETH(team, teamFee);
-        safeTransferETH(dev, CREATE_FEE - teamFee);
+        uint256 devFee = CREATE_FEE - teamFee;
+
+        // Add fees to pending withdrawals instead of immediate transfer
+        addPendingWithdrawal(team, teamFee);
+        addPendingWithdrawal(dev, devFee);
+
         uint256 payAmount = msg.value - CREATE_FEE;
         if (payAmount > 0) {
             _buy(token, payAmount, amountMin, block.timestamp, address(0));
@@ -213,36 +255,49 @@ contract EPumpXCurve is
         require(curveInfo[token].status == 0, "NOT_OPEN");
         require(deadline >= block.timestamp, "OVER_DEADLINE");
 
+        // Calculate fees
         uint256 devFee = (payAmount * DEV_FEE) /
             (FEE_DENOM + TEAM_FEE + DEV_FEE);
-        safeTransferETH(dev, devFee);
         uint256 teamFee = (payAmount * TEAM_FEE) /
             (FEE_DENOM + TEAM_FEE + DEV_FEE);
-        safeTransferETH(team, teamFee);
         uint256 ethAmount = payAmount - devFee - teamFee;
 
+        // Add fees to pending withdrawals
+        addPendingWithdrawal(dev, devFee);
+        addPendingWithdrawal(team, teamFee);
+
+        // Handle hardcap
         uint256 overPaidETH = 0;
         if (ethAmount + curveInfo[token].funds > curveInfo[token].hardcap) {
             uint256 deltaETH = curveInfo[token].hardcap -
                 curveInfo[token].funds;
             overPaidETH = ethAmount - deltaETH;
             ethAmount = deltaETH;
+
+            // Return excess ETH via pending withdrawals
+            if (overPaidETH > 0) {
+                addPendingWithdrawal(msg.sender, overPaidETH);
+            }
         }
 
         uint256 tokenAmount = getAmountOutToken(ethAmount, token);
         require(tokenAmount >= amountMin, "OVER_SLIPPAGE");
 
+        // Update state
         curveInfo[token].lastTrade = block.timestamp;
         curveInfo[token].supply += tokenAmount;
-        curveInfo[token].funds += (ethAmount + overPaidETH);
+        curveInfo[token].funds += ethAmount;
 
+        // Check if hardcap reached
+        bool hardcapReached = false;
         if (curveInfo[token].funds >= curveInfo[token].hardcap) {
             curveInfo[token].status = 1;
             curveInfo[token].actionAt = block.timestamp;
             emit CurveCompleted(token);
-            launchCurve(token);
+            hardcapReached = true;
         }
 
+        // Check if king of the hill
         if (
             curveInfo[token].king == 0 &&
             curveInfo[token].funds >= curveInfo[token].kingcap
@@ -252,9 +307,13 @@ contract EPumpXCurve is
             emit KingOfTheHill(token, msg.sender, tokenAmount);
         }
 
-        if (referrer != address(0) && REF_FEE  > 0) {
-            IERC20(token).transfer(referrer, tokenAmount * REF_FEE / 100);
-            IERC20(token).transfer(msg.sender, tokenAmount * (100-REF_FEE) / 100);
+        // Transfer tokens to buyer and referrer
+        if (referrer != address(0) && REF_FEE > 0) {
+            uint256 refAmount = (tokenAmount * REF_FEE) / 100;
+            uint256 buyerAmount = tokenAmount - refAmount;
+
+            IERC20(token).transfer(referrer, refAmount);
+            IERC20(token).transfer(msg.sender, buyerAmount);
         } else {
             IERC20(token).transfer(msg.sender, tokenAmount);
         }
@@ -263,11 +322,16 @@ contract EPumpXCurve is
             msg.sender,
             token,
             tokenAmount,
-            (ethAmount + overPaidETH),
+            ethAmount,
             price(token),
             priceInUSD(token),
             referrer
         );
+
+        // Launch curve if hardcap reached
+        if (hardcapReached) {
+            launchCurve(token);
+        }
     }
 
     function buy(
@@ -294,20 +358,24 @@ contract EPumpXCurve is
         require(curveInfo[token].status == 0, "NOT_OPEN");
         require(deadline >= block.timestamp, "OVER_DEADLINE");
 
+        // External call before state changes
         IERC20(token).transferFrom(msg.sender, address(this), amount);
+
         (uint256 ethAmount, uint256 devFee, uint256 teamFee) = getAmountOutETH(
             amount,
             token
         );
         require(ethAmount >= ethMin, "OVER_SLIPPAGE");
 
+        // Update state
         curveInfo[token].lastTrade = block.timestamp;
         curveInfo[token].supply -= amount;
         curveInfo[token].funds -= (ethAmount + devFee + teamFee);
 
-        safeTransferETH(dev, devFee);
-        safeTransferETH(team, teamFee);
-        safeTransferETH(msg.sender, ethAmount);
+        // Add to pending withdrawals instead of immediate transfer
+        addPendingWithdrawal(dev, devFee);
+        addPendingWithdrawal(team, teamFee);
+        addPendingWithdrawal(msg.sender, ethAmount);
 
         emit Sell(
             msg.sender,
@@ -322,24 +390,25 @@ contract EPumpXCurve is
     function launchCurve(address token) internal {
         require(curveInfo[token].status == 1, "NOT_READY");
 
-        IERC20(token).launch();
+        // Calculate all values before making any external calls or state changes
+        uint256 tokenAmount = curveInfo[token].totalSupply -
+            curveInfo[token].supply;
+        uint256 curveFee = CURVE_FEE; // fixed fee
+        uint256 devFee = (curveFee * DEV_FEE) / (DEV_FEE + TEAM_FEE);
+        uint256 teamFee = curveFee - devFee;
+        uint256 ethAmount = curveInfo[token].funds - curveFee;
+
+        // Update state
         curveInfo[token].status = 2;
         curveInfo[token].actionAt = block.timestamp;
 
+        // Add fees to pending withdrawals
+        addPendingWithdrawal(dev, devFee);
+        addPendingWithdrawal(team, teamFee);
+
+        // Now make external calls after state changes
+        IERC20(token).launch();
         IERC20(token).approve(router, curveInfo[token].totalSupply);
-
-        uint256 tokenAmount = curveInfo[token].totalSupply -
-            curveInfo[token].supply;
-
-        // uint256 curveFee = (curveInfo[token].funds * CURVE_FEE) / FEE_DENOM; // % fee
-        uint256 curveFee = CURVE_FEE; // fixed fee
-
-        uint256 devFee = (curveFee * DEV_FEE) / (DEV_FEE + TEAM_FEE);
-        safeTransferETH(dev, devFee);
-        uint256 teamFee = curveFee - devFee;
-        safeTransferETH(team, teamFee);
-
-        uint256 ethAmount = curveInfo[token].funds - curveFee;
 
         IRouter(router).addLiquidityETH{value: ethAmount}(
             token,
@@ -349,6 +418,7 @@ contract EPumpXCurve is
             dead,
             block.timestamp
         );
+
         emit CurveLaunched(token);
     }
 
@@ -437,15 +507,55 @@ contract EPumpXCurve is
         return deltaToken;
     }
 
-    function getLatestETHPrice() public view returns (uint256) {
-        return 100000000; //uint256(priceFeed.latestAnswer());
+    function getLatestEpixPrice() public view returns (uint256) {
+        require(epixUsdcPair != address(0), "EPIX/USDC pair not set");
+        require(epix != address(0), "EPIX token not set");
+        require(usdc != address(0), "USDC token not set");
+
+        (uint256 reserve0, uint256 reserve1, ) = IPair(epixUsdcPair)
+            .getReserves();
+
+        require(reserve0 > 0 && reserve1 > 0, "Insufficient liquidity in pair");
+
+        // Determine which reserve is EPIX and which is USDC
+        address token0 = IPair(epixUsdcPair).token0();
+
+        uint256 epixReserve;
+        uint256 usdcReserve;
+
+        if (token0 == epix) {
+            epixReserve = reserve0;
+            usdcReserve = reserve1;
+        } else {
+            epixReserve = reserve1;
+            usdcReserve = reserve0;
+        }
+
+        require(epixReserve > 0, "Zero EPIX reserve");
+
+        // Calculate price with proper scaling
+        // Assuming USDC has 6 decimals and we want the price in ETH_DENOM (10^8) precision
+        return
+            Math.mulDiv(
+                usdcReserve,
+                ETH_DENOM * (10 ** 12),
+                epixReserve * (10 ** 6)
+            );
     }
 
-    // PriceInETH as PRICE_DENOM
+    // Kept for backward compatibility
+    function getLatestETHPrice() public view returns (uint256) {
+        return getLatestEpixPrice();
+    }
+
+    // PriceInEPIX as PRICE_DENOM
     function price(address token) public view returns (uint256) {
         require(curveInfo[token].token == token, "NO_CURVE");
         if (curveInfo[token].status == 2) {
+            // Use weth which is actually EPIX in this context
             address pair = IFactory(factory).getPair(weth, token);
+            require(pair != address(0), "Pair not found");
+
             (uint256 reserve0, uint256 reserve1, ) = IPair(pair).getReserves();
             address token0 = IPair(pair).token0();
             if (token0 == token) {
@@ -463,8 +573,8 @@ contract EPumpXCurve is
 
     // PriceInUSD as PRICE_DENOM
     function priceInUSD(address token) public view returns (uint256) {
-        uint256 priceInETH = price(token);
-        return Math.mulDiv(priceInETH, getLatestETHPrice(), ETH_DENOM);
+        uint256 priceInEPIX = price(token);
+        return Math.mulDiv(priceInEPIX, getLatestEpixPrice(), ETH_DENOM);
     }
 
     // PriceInUSD as PRICE_DENOM
@@ -524,14 +634,14 @@ contract EPumpXCurve is
 
     // PriceInUSD as PRICE_DENOM
     function hardcapPriceInUSD(address token) public view returns (uint256) {
-        uint256 priceInETH = hardcapPrice(token);
-        return Math.mulDiv(priceInETH, getLatestETHPrice(), ETH_DENOM);
+        uint256 priceInEPIX = hardcapPrice(token);
+        return Math.mulDiv(priceInEPIX, getLatestEpixPrice(), ETH_DENOM);
     }
 
     // PriceInUSD as PRICE_DENOM
     function kingcapPriceInUSD(address token) public view returns (uint256) {
-        uint256 priceInETH = kingcapPrice(token);
-        return Math.mulDiv(priceInETH, getLatestETHPrice(), ETH_DENOM);
+        uint256 priceInEPIX = kingcapPrice(token);
+        return Math.mulDiv(priceInEPIX, getLatestEpixPrice(), ETH_DENOM);
     }
 
     // PriceInUSD as PRICE_DENOM
@@ -539,8 +649,8 @@ contract EPumpXCurve is
         uint256 funds,
         address token
     ) public view returns (uint256) {
-        uint256 priceInETH = priceFromFunds(funds, token);
-        return Math.mulDiv(priceInETH, getLatestETHPrice(), ETH_DENOM);
+        uint256 priceInEPIX = priceFromFunds(funds, token);
+        return Math.mulDiv(priceInEPIX, getLatestEpixPrice(), ETH_DENOM);
     }
 
     // PriceInUSD as PRICE_DENOM
@@ -548,8 +658,8 @@ contract EPumpXCurve is
         uint256 supply,
         address token
     ) public view returns (uint256) {
-        uint256 priceInETH = priceFromToken(supply, token);
-        return Math.mulDiv(priceInETH, getLatestETHPrice(), ETH_DENOM);
+        uint256 priceInEPIX = priceFromToken(supply, token);
+        return Math.mulDiv(priceInEPIX, getLatestEpixPrice(), ETH_DENOM);
     }
 
     function setTeam(address _team) external onlyOwner {
@@ -624,6 +734,16 @@ contract EPumpXCurve is
         priceFeed = IPriceFeed(_priceFeed);
     }
 
+    function setEpixUsdcPair(
+        address _pair,
+        address _epix,
+        address _usdc
+    ) external onlyOwner {
+        epixUsdcPair = _pair;
+        epix = _epix;
+        usdc = _usdc;
+    }
+
     function setEthDenom(uint256 _ethDenom) external onlyOwner {
         ETH_DENOM = _ethDenom;
     }
@@ -642,6 +762,19 @@ contract EPumpXCurve is
 
     function allTokensLength() external view returns (uint256) {
         return allTokens.length;
+    }
+
+    // Get the total amount of pending withdrawals
+    function getTotalPendingWithdrawals() public view returns (uint256) {
+        return
+            pendingWithdrawals[team] +
+            pendingWithdrawals[dev] +
+            pendingWithdrawals[dead];
+    }
+
+    // Check if the contract has enough balance to cover all pending withdrawals
+    function hasSufficientBalance() public view returns (bool) {
+        return address(this).balance >= getTotalPendingWithdrawals();
     }
 
     receive() external payable {}
