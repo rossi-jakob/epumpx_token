@@ -7,7 +7,7 @@ const db = require('./config/db');
 const config = require('./config/config');
 const { getOffChainCurveInfo } = require("./utils/index")
 const { startWebSocketServer } = require("./utils/websocket")
-const tgLoginBot = require('./loginBot/bot');
+//const tgLoginBot = require('./loginBot/bot');
 
 const urlencodeParser = bodyParser.urlencoded({ extended: false });
 var miscRouter = require("./routes/miscRouter");
@@ -79,7 +79,7 @@ async function server() {
         }
     );
 
-    tgLoginBot.init();
+    //tgLoginBot.init();
 }
 
 server();

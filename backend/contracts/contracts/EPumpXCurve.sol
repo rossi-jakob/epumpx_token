@@ -13,7 +13,7 @@ import "./OwnableUpgradeable.sol";
 import "./ReentrancyGuardUpgradeable.sol";
 import "./PausableUpgradeable.sol";
 
-contract EvmFunCurve is
+contract EPumpXCurve is
     OwnableUpgradeable,
     ReentrancyGuardUpgradeable,
     PausableUpgradeable
@@ -126,8 +126,8 @@ contract EvmFunCurve is
         PRICE_DENOM = 10 ** 12;
 
         // CURVE_FEE = 1000; // % fee
-        DEV_FEE = 50;
-        TEAM_FEE = 50;
+        DEV_FEE = 99;
+        TEAM_FEE = 1;
         REF_FEE = 20;
 
         totalSupply = 10 ** 9 * 10 ** 18; // 1 Billion
