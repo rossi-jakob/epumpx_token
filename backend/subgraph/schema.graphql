@@ -12,7 +12,7 @@ type Buy @entity(immutable: true) {
   address: Bytes! # Curve address
 }
 
-type PendingCurve @entity {
+type PendingCurve @entity(immutable: true) {
   id: Bytes!
   token: Bytes! # address
   status: BigInt!
@@ -63,7 +63,7 @@ type KingOfTheHill @entity(immutable: true) {
   address: Bytes! # Curve address
 }
 
-type CurrentKingOfTheHill @entity {
+type CurrentKingOfTheHill @entity(immutable: true) {
   id: String! # 'KOH'
   token: Bytes! # address
   buyer: Bytes! # address
@@ -104,7 +104,7 @@ type Trade @entity(immutable: true) {
   address: Bytes! # Curve address
 }
 
-type Balance @entity {
+type Balance @entity(immutable: true) {
   id: Bytes! # token-account
   token: Bytes! # address
   account: Bytes! # address

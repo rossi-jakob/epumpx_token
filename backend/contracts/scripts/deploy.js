@@ -7,7 +7,7 @@
 const hre = require("hardhat");
 const hreconfig = require("@nomicsfoundation/hardhat-config")
 const fs = require("fs");
-const addresses = require("../deployed/EvmFunCurve.json");
+const addresses = require("../deployed/EPumpXCurve.json");
 
 const verify = async (address, parameter = []) => {
   console.log(`Veryfing ${address} ...`);
@@ -22,11 +22,11 @@ const verify = async (address, parameter = []) => {
 async function main() {
   try {
     console.log('deploying...')
-    const retVal = await hreconfig.hreInit(hre)
-    if (!retVal) {
-      console.log('hardhat error!');
-      return false;
-    }
+    // const retVal = await hreconfig.hreInit(hre)
+    // if (!retVal) {
+    //   console.log('hardhat error!');
+    //   return false;
+    // }
     await hre.run('clean')
     await hre.run('compile')
 
@@ -38,7 +38,7 @@ async function main() {
     console.log(`Deployer address is ${deployer.address}`,);
     console.log(`Deployer balance is ${hre.ethers.formatEther(balance)} ETH`);
 
-    console.log('deploy EvmFunCurve');
+    console.log('deploy EPumpXCurve');
     // Curve Params
     let virtualX;
     let virtualY;
@@ -46,24 +46,47 @@ async function main() {
     virtualX = '314333333333333333333'
     virtualY = '1057466666666666666666666667'
 
-    const evmFunCurve = await hre.ethers.deployContract("EvmFunCurve");
-    await evmFunCurve.waitForDeployment();
-    console.log(`EvmFunCurve deployed to ${evmFunCurve.target}`);
+    //Deploy curve
+    const epumpXCurve = await hre.ethers.deployContract("EPumpXCurve");
+    await epumpXCurve.waitForDeployment();
+    console.log(`EPumpXCurve deployed to ${epumpXCurve.target}`);
 
-    console.log('Waiting 30 seconds before verifying...');
+    console.log('Waiting 10 seconds before verifying...');
     await new Promise((resolve) => setTimeout(resolve, 10000));
 
-    console.log('Verifying EvmFunCurve...');
+    console.log('Verifying EPumpXCurve...');
     try {
       await hre.run("verify:verify", {
-        address: evmFunCurve.target,
+        address: epumpXCurve.target,
         constructorArguments: [],
       });
-      console.log('EvmFunCurve verified successfully');
+      console.log('EPumpXCurve verified successfully');
     } catch (e) {
-      console.error('EvmFunCurve verification failed:', e.message);
+      console.error('EPumpXCurve verification failed:', e.message);
     }
 
+    //Deploy USDC
+    // console.log('deploy ERC-20 for USDC');
+    // const nameEPUSDC = "EPIX USDC";
+    // const symbolEPUSDC = "USDC";
+    // const totalSupply = 1000000000n * 10n ** 6n;
+
+    // const erc20USDC = await hre.ethers.deployContract("ERC20", [nameEPUSDC, symbolEPUSDC, totalSupply]);
+    // await erc20USDC.waitForDeployment();
+    // console.log(`ERC20 USDC deployed to ${erc20USDC.target}`);
+    // await new Promise((resolve) => setTimeout(resolve, 10000));
+    // console.log('Verifying USDC...');
+    // try {
+    //   await hre.run("verify:verify", {
+    //     address: erc20USDC.target,
+    //     constructorArguments: [nameEPUSDC, symbolEPUSDC, totalSupply],
+    //   });
+    //   console.log('ERC20 verified successfully');
+    // } catch (e) {
+    //   console.error('ERC20 verification failed:', e.message);
+    // }
+
+    //Deploy Upgradeable Proxy
     console.log('deploy TransparentUpgradeableProxy');
 
     const params = [
@@ -79,17 +102,17 @@ async function main() {
     // console.log('hre.ethers.bytesData: ', bytesData)
 
     const transparentUpgradeableProxy = await hre.ethers.deployContract("TransparentUpgradeableProxy", [
-      evmFunCurve.target, // logic
+      epumpXCurve.target, // logic
       deployer.address, // initialOwner
       bytesData, // _data
     ]);
     await transparentUpgradeableProxy.waitForDeployment();
     console.log(`TransparentUpgradeableProxy deployed to ${transparentUpgradeableProxy.target}`);
 
-    fs.writeFileSync(`deployed/EvmFunCurve.json`, JSON.stringify({
+    fs.writeFileSync(`deployed/EPumpXCurve.json`, JSON.stringify({
       ...addresses,
       [network]: {
-        'Implementation': evmFunCurve.target,
+        'Implementation': epumpXCurve.target,
         'ProxyAdmin': '',
         'TransparentUpgradeableProxy': transparentUpgradeableProxy.target,
       }

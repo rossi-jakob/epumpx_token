@@ -11,7 +11,7 @@ import "./Ownable.sol";
 contract ERC20 is Ownable, IERC20, IERC20Metadata {
     using Address for address;
 
-    string private DOMAIN = "QUAI_FUN_V1";
+    string private DOMAIN = "EPIX_FUN_V1";
 
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
@@ -39,7 +39,7 @@ contract ERC20 is Ownable, IERC20, IERC20Metadata {
     }
 
     function decimals() public view virtual override returns (uint8) {
-        return 18;
+        return 6;
     }
 
     function totalSupply() public view virtual override returns (uint256) {
