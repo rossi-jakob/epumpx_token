@@ -5,6 +5,7 @@ generated/
 # Dependency directories
 node_modules/
 jspm_packages/
+data/
 
 # Logs
 logs
