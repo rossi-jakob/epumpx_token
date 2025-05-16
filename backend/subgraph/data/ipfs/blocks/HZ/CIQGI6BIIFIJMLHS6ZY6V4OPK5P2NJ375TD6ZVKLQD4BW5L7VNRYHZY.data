@@ -1,0 +1,73 @@
+
+òêdataSources:
+  - kind: ethereum
+    mapping:
+      abis:
+        - file:
+            /: /ipfs/QmRKDWPeSqPSyAA7g7YigRoEA9XvBUke6N7n412BHHusJT
+          name: curve
+      apiVersion: 0.0.7
+      entities:
+        - Buy
+        - CurveCompleted
+        - CurveCreated
+        - CurveLaunched
+        - KingOfTheHill
+        - Sell
+        - Trade
+        - PendingCurve
+      eventHandlers:
+        - event: >-
+            Buy(indexed address,indexed
+            address,uint256,uint256,uint256,uint256,indexed address)
+          handler: handleBuy
+        - event: CurveCompleted(indexed address)
+          handler: handleCurveCompleted
+        - event: CurveCreated(indexed address,indexed address,uint256,uint256)
+          handler: handleCurveCreated
+        - event: CurveLaunched(indexed address)
+          handler: handleCurveLaunched
+        - event: KingOfTheHill(indexed address,indexed address,uint256)
+          handler: handleKingOfTheHill
+        - event: >-
+            Sell(indexed address,indexed
+            address,uint256,uint256,uint256,uint256)
+          handler: handleSell
+      file:
+        /: /ipfs/QmQQo7Y5uEGfgmihPHQq6hjqD5KCMczQhvUgQCJXTWTLdE
+      kind: ethereum/events
+      language: wasm/assemblyscript
+    name: curve
+    network: epixTestnet
+    source:
+      abi: curve
+      address: '0xFcC78130A502745443c36443A6FAC4a25de7AF03'
+      startBlock: 324883
+indexerHints:
+  prune: auto
+schema:
+  file:
+    /: /ipfs/QmZyMkXHDWMty8RMMh8LLxtQ6U2jkwN54HfFoTnAhV63ZT
+specVersion: 1.0.0
+templates:
+  - kind: ethereum
+    mapping:
+      abis:
+        - file:
+            /: /ipfs/QmUFk1GCkR4p3rPbnYb2j9KzMxPw924jxwKHM8zQC2r2z4
+          name: token
+      apiVersion: 0.0.7
+      entities:
+        - Balances
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file:
+        /: /ipfs/QmQ999eWcRvqXzdkW9q56bEPykZ847bTr9GW1KJFuCeA9p
+      kind: ethereum/events
+      language: wasm/assemblyscript
+    name: token
+    network: epixTestnet
+    source:
+      abi: token
+ê

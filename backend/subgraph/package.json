@@ -4,7 +4,7 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --node https://test-graph.epix.zone/subgraphs",
+    "deploy": "graph deploy epumpx/curve-subgraph --node https://test-graph.epix.zone/subgraphs",
     "create-local": "graph create --node http://localhost:8020/ curve-subgraph",
     "remove-local": "graph remove --node http://localhost:8020/ curve-subgraph",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 curve-subgraph",
@@ -12,8 +12,10 @@
     "auth": "graph auth --studio 5fc36aea2cb3fdc7cb9d7280d39b5b1e"
   },
   "dependencies": {
-    "@graphprotocol/graph-cli": "0.70.0",
     "@graphprotocol/graph-ts": "0.32.0"
   },
-  "devDependencies": { "matchstick-as": "0.5.0" }
+  "devDependencies": {
+    "@graphprotocol/graph-cli": "^0.97.0",
+    "matchstick-as": "0.5.0"
+  }
 }

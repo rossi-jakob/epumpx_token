@@ -95,6 +95,7 @@ exports.startWebSocketServer = (server, connectDone, disconnectDone) => {
                 let from = lastBN;
                 let to = lastBN;
 
+                console.log("lastBN: ", lastBN)
                 while (cnt < 1000) {
                     let lastBN = (await axios.post(queryUrl, {
                         query: BLOCK_QUERY

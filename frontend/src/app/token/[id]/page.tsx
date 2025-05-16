@@ -122,7 +122,7 @@ export default function TokenPage() {
       const kingcapMc = Number(ethers.formatUnits(kingcapPriceInUSDRaw, 3));
       const priceInUSDInital = Number(ethers.formatUnits(priceInUSDFromFundsRaw, 12));
       const epixPrice = Number(ethers.formatUnits(epixPriceRaw, 8));
-      console.log('_curveInfo: ', supply, funds, status, king, creator, id, token, totalSupply, createdAt, name, symbol, logo, priceInUSD, mc)
+      // console.log('_curveInfo: ', supply, funds, status, king, creator, id, token, totalSupply, createdAt, name, symbol, logo, priceInUSD, mc)
       return {
         supply,
         funds,

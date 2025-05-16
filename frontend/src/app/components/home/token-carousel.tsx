@@ -29,8 +29,6 @@ export function TokenCarousel({
   const router = useRouter();
   const { t } = useTranslation();
 
-  console.log("token carsoel===========", tokens);
-
   const speed = 100; // pixels per second
 
   const calculateDuration = (width: number) => width / speed;

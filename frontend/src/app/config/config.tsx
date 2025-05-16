@@ -92,7 +92,7 @@ const Config = {
   MAX_UINT256_HALF: '65792089237316195423570985008687907853269984665640564039457584007913129639935',
   API_URL: 'http://localhost:5000', // TODO
   // GRAPHQL_URL: 'https://api.studio.thegraph.com/query/102185/bit-fun/v0.0.4', // TODO
-  GRAPHQL_URL: 'https://test-graph.epix.zone/subgraphs/name/epixTestnet/curve-subgraph',
+  GRAPHQL_URL: 'http://localhost:8000/subgraphs/name/curve',
   RPC_URL: rpcURL,
   PROJECT: 'chain',
   ACTION: true,
