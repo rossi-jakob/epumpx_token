@@ -25,7 +25,7 @@ export const TokenSupply = (props: any) => {
             holderData && holderData.length > 0 ? (
               holderData.map((holder : any, i : number) => (
                 <tr key={i} className="">
-                  <td className="py-2 ">
+                  <td className="py-2 text-gray-400">
                     <a
                       href={`${Config.SCAN_LINK}/address/${holder.account}`}
                       target="_blank"
@@ -38,7 +38,7 @@ export const TokenSupply = (props: any) => {
                       {spliceAdress(holder.account)}
                     </a>
                   </td>
-                  <td className="py-2 text-right text-white">
+                  <td className="py-2 text-right text-[#8346FF]">
                     <span
                       className={`${holder.account.toLowerCase() ===
                         Config.CURVE.toLowerCase()

@@ -142,7 +142,7 @@ const datafeed = (tokenId) => {
             onResetCacheNeededCallback,
             lastDailyBar
         ) => {
-            // console.log (lastDailyBar, symbolInfo, subscribeUID, "EEEE")
+            console.log (lastDailyBar, symbolInfo, subscribeUID, "EEEE")
             const resVal = resValues[resolution];
             Socket.emit("SUBSCRIBE", tokenId, resVal)
             if (realtime_callback == undefined) {

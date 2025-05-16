@@ -1,0 +1,127 @@
+
+þötype Buy @entity(immutable: true) {
+  id: Bytes!
+  buyer: Bytes! # address
+  token: Bytes! # address
+  amount: BigInt! # uint256
+  eth: BigInt! # uint256
+  latestPrice: BigInt! # uint256
+  latestPriceInUSD: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  address: Bytes! # Curve address
+}
+
+type PendingCurve @entity(immutable: true) {
+  id: Bytes!
+  token: Bytes! # address
+  status: BigInt!
+  createdTime: BigInt!
+  completedTime: BigInt!
+  launchedTime: BigInt!
+  address: Bytes! # Curve address
+} 
+
+type CurveCompleted @entity(immutable: true) {
+  id: Bytes!
+  token: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  address: Bytes! # Curve address
+}
+
+type CurveCreated @entity(immutable: true) {
+  id: Bytes!
+  creator: Bytes! # address
+  token: Bytes! # address
+  startPrice: BigInt! # uint256
+  startPriceInUSD: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  address: Bytes! # Curve address
+}
+
+type CurveLaunched @entity(immutable: true) {
+  id: Bytes!
+  token: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  address: Bytes! # Curve address
+}
+
+type KingOfTheHill @entity(immutable: true) {
+  id: Bytes!
+  token: Bytes! # address
+  buyer: Bytes! # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  address: Bytes! # Curve address
+}
+
+type CurrentKingOfTheHill @entity(immutable: true) {
+  id: String! # 'KOH'
+  token: Bytes! # address
+  buyer: Bytes! # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  address: Bytes! # Curve address
+}
+
+type Sell @entity(immutable: true) {
+  id: Bytes!
+  seller: Bytes! # address
+  token: Bytes! # address
+  amount: BigInt! # uint256
+  eth: BigInt! # uint256
+  latestPrice: BigInt! # uint256
+  latestPriceInUSD: BigInt! # uint256
+  referrer: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  address: Bytes! # Curve address
+}
+
+type Trade @entity(immutable: true) {
+  id: Bytes!
+  token: Bytes! # address
+  trader: Bytes! # address
+  isBuy: Boolean! # buy/sell
+  amount: BigInt! # uint256
+  eth: BigInt! # uint256
+  price: BigInt! # uint256
+  priceInUSD: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  address: Bytes! # Curve address
+}
+
+type Balance @entity(immutable: true) {
+  id: Bytes! # token-account
+  token: Bytes! # address
+  account: Bytes! # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  address: Bytes! # Curve address
+}
+
+type Token @entity(immutable: true) {
+  id: Bytes! # token
+  token: Bytes! # token
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  address: Bytes! # Curve address
+}
+ö

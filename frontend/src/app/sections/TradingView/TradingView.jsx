@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, memo } from "react";
 import { toast } from "react-toastify";
 import { BsGlobe2 } from "react-icons/bs";
+import Link from "next/link";
 import { FaTelegramPlane } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
 import { useAccount, useConfig } from "wagmi";
@@ -9,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import { ethers } from "ethers";
+import { formatEther } from "ethers";
 
 import EasingY from "@/app/components/animations/EasingY";
 import GradientEllipse from "@/app/components/gradient-ellipsis";
@@ -29,6 +31,7 @@ import Slippage from "@/app/components/slippage/Slippage";
 import { useCurveStatus } from "@/app/components/hooks/useCurveStatus";
 import usePagination from "@/app/utils/pagination"
 import Socket from "@/app/utils/socket";
+import { spliceAdress } from "../../utils/util";
 
 function TradingView({
   tokenAddr,
@@ -876,7 +879,7 @@ function TradingView({
                       <tbody>
                         {tradeData && tradeData.length > 0 && getTradeData?.currentData()?.map((item, i) => (
                           <tr key={i}>
-                            <td className="flex gap-1 items-center">
+                            <td className="flex gap-1 items-center text-gray-400">
                               <Link
                                 href={`${Config.SCAN_LINK}/address/${item.trader}`}
                                 target="_blank"
@@ -885,11 +888,11 @@ function TradingView({
                                 {spliceAdress(item.trader)}
                               </Link>
                             </td>
-                            <td>{item.isBuy ? "Buy" : "Sell"}</td>
-                            <td>{Number(formatEther(item.eth)).toFixed(4)}</td>
-                            <td>{Number(formatEther(item.amount)).toFixed(2)}</td>
-                            <td>{new Date(item.blockTimestamp * 1000).toLocaleString()}</td>
-                            <td>
+                            <td className={`${item.isBuy? "text-[#8346FF]":"text-[#FF0000]"}`}>{item.isBuy ? "Buy" : "Sell"}</td>
+                            <td className={`${item.isBuy? "text-[#8346FF]":"text-[#FF0000]"}`}>{Number(formatEther(item.eth)).toFixed(4)}</td>
+                            <td className={`${item.isBuy? "text-[#8346FF]":"text-[#FF0000]"}`}>{Number(formatEther(item.amount)).toFixed(2)}</td>
+                            <td className="text-gray-400">{new Date(item.blockTimestamp * 1000).toLocaleString()}</td>
+                            <td className="text-[#8346FF] underline">
                               <Link
                                 href={`${Config.SCAN_LINK}/tx/${item.transactionHash}`}
                                 target="_blank"
