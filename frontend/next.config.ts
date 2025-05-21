@@ -27,9 +27,7 @@ const nextConfig: NextConfig = {
   //     },
   //   ],
   // },
-  output: "export",
   distDir: "build",
-  //output: 'export',
   eslint: {
     ignoreDuringBuilds: true
   },
