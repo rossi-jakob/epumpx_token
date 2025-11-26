@@ -228,7 +228,7 @@ contract EPumpXCurve is
 
         allTokens.push(token);
 
-        emit CurveCreated(msg.sender, token, price(token), priceInUSD(token));
+        // emit CurveCreated(msg.sender, token, price(token), priceInUSD(token));
 
         require(msg.value >= CREATE_FEE, "INSUFFICIENT_ETH");
         uint256 teamFee = (CREATE_FEE * DEV_FEE) / (TEAM_FEE + DEV_FEE);

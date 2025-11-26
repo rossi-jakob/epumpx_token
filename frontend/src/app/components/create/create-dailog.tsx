@@ -35,6 +35,7 @@ const CreateTokenDailog = ({
 
   const [tokenCreated, setTokenCreated] = useState(false)
   const handleCreateToken = () => {
+    console.log("Creating token...")
     setTokenCreated(false)
     handleFirstBuy()
     setTokenCreated(true);

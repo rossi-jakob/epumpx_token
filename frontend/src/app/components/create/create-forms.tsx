@@ -105,6 +105,8 @@ export const CreateForms = () => {
       // 1. Curve Contract Call
       const curveContract = new ethers.Contract(Config.CURVE, curveABI, signer);
 
+      console.log("curve contract:", curveContract);
+
       const amountIn = ethers.parseUnits(amount.toString(), Config.WETH_DEC);
       const amountOut = await curveContract._getAmountOutToken(
         amountIn,
@@ -120,6 +122,8 @@ export const CreateForms = () => {
       const bnbBal = account.address ? parseFloat(formatUnits(balance, Config.WETH_DEC)) : 0
       const tokenMin = _tokenAmount * (100 - slippage) / 100
       const requiredBnbBal = Config.CURVE_CREATE_FEE + Number(amount) * (1 + Config.CURVE_SWAP_FEE)
+
+      console.log("requiredBnbBal", _tokenAmount)
 
       if (requiredBnbBal > bnbBal) {
         setPending(false)

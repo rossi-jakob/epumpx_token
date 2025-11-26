@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronUp, X } from 'lucide-react';
+import Link from "next/link"
 
 export const HowItWorks = ({ onClose }: { onClose: () => void }) => {
     const [openSection, setOpenSection] = useState<'create' | 'trade' | 'listing' | null>('create');
@@ -49,7 +50,7 @@ export const HowItWorks = ({ onClose }: { onClose: () => void }) => {
                 >
                     <ol className="list-decimal ml-6 mt-2 space-y-1">
                         <li>
-                            Click <span className="text-blue-400 font-medium">[Create Token]</span>
+                            Click <Link href="/create" className="text-blue-400 font-medium underline">[Create Token]</Link>
                         </li>
                         <li>Choose a name, symbol (ticker), and upload an image</li>
                         <li>Token is now created and tradable on the bonding curve</li>

@@ -24,6 +24,8 @@ export const ImageUpload = ({ onImageUploaded }: ImageUploadProps) => {
       const formData = new FormData();
       formData.append("file", file);
       
+      console.log("Uploading to Pinata...", file);
+
       const response = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
